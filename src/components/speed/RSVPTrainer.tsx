@@ -10,7 +10,17 @@ import {
   Zap,
   BookOpen,
   CheckCircle,
+  TrendingUp,
+  ArrowUp,
+  Loader2,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+
+interface Props {
+  userId: string | null;
+  currentWpm: number;
+  baselineWpm: number;
+}
 
 const SAMPLE_TEXTS = [
   {
@@ -33,6 +43,20 @@ const SAMPLE_TEXTS = [
   },
 ];
 
+// Adaptive step: 10% increment, snapped to nearest 25
+function nextTarget(wpm: number): number {
+  return Math.round((wpm * 1.1) / 25) * 25;
+}
+
+function wpmLabel(wpm: number): string {
+  if (wpm < 150) return "Developing";
+  if (wpm < 220) return "Average";
+  if (wpm < 300) return "Good";
+  if (wpm < 400) return "Advanced";
+  if (wpm < 600) return "Expert";
+  return "Elite";
+}
+
 const PIVOT_CHAR_RATIOS: Record<number, number> = {
   1: 0, 2: 0, 3: 0.3, 4: 0.3, 5: 0.3, 6: 0.35, 7: 0.35, 8: 0.4, 9: 0.4,
 };
@@ -44,26 +68,31 @@ function getPivotIndex(word: string): number {
   return Math.round(len * ratio);
 }
 
-export function RSVPTrainer() {
+export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
+  const supabase = createClient();
+
   const [selectedText, setSelectedText] = useState(0);
   const [customText, setCustomText] = useState("");
   const [useCustom, setUseCustom] = useState(false);
-  const [wpm, setWpm] = useState(300);
+
+  // Start at user's current WPM, snapped to nearest 25
+  const startWpm = Math.round(currentWpm / 25) * 25;
+  const [wpm, setWpm] = useState(startWpm);
   const [playing, setPlaying] = useState(false);
   const [wordIndex, setWordIndex] = useState(0);
   const [finished, setFinished] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [actualWpm, setActualWpm] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [sessionCount, setSessionCount] = useState(0); // sessions at this WPM
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const activeText = useCustom
-    ? customText
-    : SAMPLE_TEXTS[selectedText].text;
+  const activeText = useCustom ? customText : SAMPLE_TEXTS[selectedText].text;
   const words = activeText.trim().split(/\s+/).filter(Boolean);
   const currentWord = words[wordIndex] ?? "";
   const pivotIndex = getPivotIndex(currentWord);
-
   const msPerWord = Math.round((60 / wpm) * 1000);
 
   const stop = useCallback(() => {
@@ -72,10 +101,7 @@ export function RSVPTrainer() {
   }, []);
 
   const start = useCallback(() => {
-    if (finished) {
-      setWordIndex(0);
-      setFinished(false);
-    }
+    if (finished) { setWordIndex(0); setFinished(false); }
     if (!startTime) setStartTime(Date.now());
     setPlaying(true);
   }, [finished, startTime]);
@@ -89,7 +115,9 @@ export function RSVPTrainer() {
             setFinished(true);
             if (startTime) {
               const elapsed = (Date.now() - startTime) / 60000;
-              setActualWpm(Math.round(words.length / elapsed));
+              const computed = Math.round(words.length / elapsed);
+              setActualWpm(computed);
+              saveResult(computed);
             }
             return prev;
           }
@@ -99,10 +127,32 @@ export function RSVPTrainer() {
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playing, msPerWord, words.length, stop, startTime]);
+
+  async function saveResult(completedWpm: number) {
+    if (!userId) return;
+    setSaving(true);
+    const newBest = Math.max(completedWpm, currentWpm);
+
+    await supabase.from("wpm_tests").insert({
+      user_id: userId,
+      wpm: completedWpm,
+      mode: "rsvp",
+    });
+
+    // Update profile current_wpm if improved
+    if (completedWpm > currentWpm) {
+      await supabase.from("profiles")
+        .update({ current_wpm: newBest })
+        .eq("id", userId);
+    }
+
+    setSaving(false);
+    setSaved(true);
+    setSessionCount((c) => c + 1);
+  }
 
   function reset() {
     stop();
@@ -111,18 +161,52 @@ export function RSVPTrainer() {
     setShowQuiz(false);
     setStartTime(null);
     setActualWpm(null);
+    setSaved(false);
+  }
+
+  function levelUp() {
+    const next = nextTarget(wpm);
+    setWpm(next);
+    reset();
   }
 
   const progress = words.length > 0 ? (wordIndex / words.length) * 100 : 0;
+  const wpmGain = currentWpm - baselineWpm;
+  const target = nextTarget(wpm);
+
+  // Adaptive verdict after completion
+  const succeededAtSpeed = actualWpm !== null && actualWpm >= wpm * 0.9;
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold mb-1">Speed Reading Trainer</h1>
         <p className="text-muted-foreground text-sm">
-          RSVP (Rapid Serial Visual Presentation) — train your brain to read
-          word-by-word at higher speeds
+          RSVP — Rapid Serial Visual Presentation. Calibrated to your current level.
         </p>
+      </div>
+
+      {/* Adaptive Level Banner */}
+      <div className="bg-card border border-border rounded-2xl p-4 mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-4">
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Baseline</p>
+            <p className="text-lg font-bold">{baselineWpm} <span className="text-xs font-normal text-muted-foreground">WPM</span></p>
+          </div>
+          <TrendingUp className="w-4 h-4 text-primary" />
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Current</p>
+            <p className="text-lg font-bold text-primary">{currentWpm} <span className="text-xs font-normal text-muted-foreground">WPM</span></p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Next Target</p>
+            <p className="text-lg font-bold text-yellow-400">{target} <span className="text-xs font-normal text-muted-foreground">WPM</span></p>
+          </div>
+        </div>
+        <div className="flex flex-col items-end">
+          <span className="text-xs font-semibold text-primary uppercase tracking-wide">{wpmLabel(currentWpm)}</span>
+          {wpmGain > 0 && <span className="text-xs text-emerald-400">+{wpmGain} WPM from baseline</span>}
+        </div>
       </div>
 
       {/* Text Selection */}
@@ -175,7 +259,10 @@ export function RSVPTrainer() {
       {/* WPM Control */}
       <div className="bg-card border border-border rounded-2xl p-6 mb-6">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Reading Speed</h2>
+          <div>
+            <h2 className="font-semibold">Session Speed</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Pre-set to your current level — adjust to challenge yourself</p>
+          </div>
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-yellow-400" />
             <span className="text-2xl font-bold text-yellow-400">{wpm}</span>
@@ -188,27 +275,33 @@ export function RSVPTrainer() {
           max={1000}
           step={25}
           value={wpm}
-          onChange={(e) => setWpm(Number(e.target.value))}
+          onChange={(e) => { setWpm(Number(e.target.value)); reset(); }}
           className="w-full accent-primary"
         />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>100 (Slow)</span>
-          <span>300 (Average)</span>
-          <span>600 (Fast)</span>
-          <span>1000 (Elite)</span>
+          <span>100</span>
+          <span>300 (avg)</span>
+          <span>600</span>
+          <span>1000</span>
         </div>
-        <div className="flex gap-2 mt-3">
-          {[150, 250, 350, 500, 700].map((speed) => (
+        {/* Adaptive preset buttons */}
+        <div className="flex gap-2 mt-3 flex-wrap">
+          {[
+            { label: "Comfort", value: Math.max(100, startWpm - 50) },
+            { label: "Current", value: startWpm },
+            { label: "Target", value: target },
+            { label: "Push", value: Math.round((target * 1.1) / 25) * 25 },
+          ].map((preset) => (
             <button
-              key={speed}
-              onClick={() => setWpm(speed)}
+              key={preset.label}
+              onClick={() => { setWpm(preset.value); reset(); }}
               className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
-                wpm === speed
+                wpm === preset.value
                   ? "bg-primary/15 border-primary/40 text-primary"
                   : "border-border text-muted-foreground hover:border-primary/30"
               }`}
             >
-              {speed}
+              {preset.label} · {preset.value}
             </button>
           ))}
         </div>
@@ -216,7 +309,6 @@ export function RSVPTrainer() {
 
       {/* RSVP Display */}
       <div className="bg-card border border-border rounded-2xl p-10 mb-6 text-center">
-        {/* Progress bar */}
         <div className="w-full bg-muted rounded-full h-1 mb-8">
           <div
             className="bg-primary h-1 rounded-full transition-all duration-100"
@@ -224,7 +316,6 @@ export function RSVPTrainer() {
           />
         </div>
 
-        {/* Word display with pivot */}
         <div className="flex items-center justify-center mb-2 min-h-[80px]">
           {words.length > 0 ? (
             <div className="rsvp-display flex items-baseline">
@@ -245,12 +336,10 @@ export function RSVPTrainer() {
           )}
         </div>
 
-        {/* Word counter */}
         <p className="text-xs text-muted-foreground mb-8">
           {wordIndex + 1} / {words.length}
         </p>
 
-        {/* Controls */}
         <div className="flex items-center justify-center gap-4">
           <button
             onClick={() => setWordIndex((p) => Math.max(0, p - 10))}
@@ -264,27 +353,13 @@ export function RSVPTrainer() {
             disabled={words.length === 0}
             className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            {playing ? (
-              <>
-                <Pause className="w-5 h-5" /> Pause
-              </>
-            ) : (
-              <>
-                <Play className="w-5 h-5" />
-                {wordIndex > 0 && !finished ? "Resume" : "Start"}
-              </>
-            )}
+            {playing ? <><Pause className="w-5 h-5" /> Pause</> : <><Play className="w-5 h-5" />{wordIndex > 0 && !finished ? "Resume" : "Start"}</>}
           </button>
-          <button
-            onClick={reset}
-            className="p-2 rounded-lg border border-border text-muted-foreground hover:border-primary/40 transition-colors"
-          >
+          <button onClick={reset} className="p-2 rounded-lg border border-border text-muted-foreground hover:border-primary/40 transition-colors">
             <RotateCcw className="w-5 h-5" />
           </button>
           <button
-            onClick={() =>
-              setWordIndex((p) => Math.min(words.length - 1, p + 10))
-            }
+            onClick={() => setWordIndex((p) => Math.min(words.length - 1, p + 10))}
             disabled={wordIndex >= words.length - 1}
             className="p-2 rounded-lg border border-border text-muted-foreground hover:border-primary/40 disabled:opacity-30 transition-colors"
           >
@@ -293,36 +368,78 @@ export function RSVPTrainer() {
         </div>
       </div>
 
-      {/* Finished state */}
+      {/* Finished state — adaptive */}
       {finished && (
-        <div className="bg-card border border-primary/30 rounded-2xl p-6 text-center">
-          <CheckCircle className="w-10 h-10 text-primary mx-auto mb-3" />
-          <h3 className="text-xl font-bold mb-2">
-            {actualWpm ? `${actualWpm} WPM` : "Complete!"}
-          </h3>
-          <p className="text-muted-foreground text-sm mb-5">
-            You read {words.length} words
-            {actualWpm ? ` at ${actualWpm} WPM` : ""}.
-            {actualWpm && actualWpm > 300
-              ? " Excellent speed!"
-              : actualWpm && actualWpm > 200
-              ? " Good progress. Keep training!"
-              : " Keep practicing to build your speed."}
-          </p>
-          <div className="flex gap-3 justify-center">
+        <div className="bg-card border border-primary/30 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              {saving ? (
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              ) : (
+                <CheckCircle className="w-8 h-8 text-primary" />
+              )}
+              <div>
+                <h3 className="text-xl font-bold">
+                  {actualWpm ? `${actualWpm} WPM` : "Complete!"}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {saved ? "Saved to your profile ✓" : saving ? "Saving..." : ""}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Session target</p>
+              <p className="text-lg font-bold">{wpm} WPM</p>
+            </div>
+          </div>
+
+          {/* Adaptive verdict */}
+          {actualWpm !== null && (
+            <div className={`rounded-xl p-4 mb-4 text-sm ${
+              succeededAtSpeed
+                ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                : "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400"
+            }`}>
+              {succeededAtSpeed ? (
+                <div>
+                  <p className="font-semibold mb-1">✓ Target achieved — ready to level up</p>
+                  <p className="text-xs opacity-80">
+                    You maintained {actualWpm} WPM. Your next training target is <strong>{target} WPM</strong>.
+                    Complete one more session at {target} WPM with good comprehension to lock in that gain.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="font-semibold mb-1">Keep building at this speed</p>
+                  <p className="text-xs opacity-80">
+                    You read {actualWpm} WPM vs {wpm} WPM target.
+                    Repeat at this speed until you consistently hit {wpm}+ WPM before advancing.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3 flex-wrap">
             <button
               onClick={reset}
               className="flex items-center gap-2 border border-border px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-muted/50 transition-colors"
             >
-              <RotateCcw className="w-4 h-4" />
-              Try Again
+              <RotateCcw className="w-4 h-4" /> Try Again
             </button>
+            {succeededAtSpeed && (
+              <button
+                onClick={levelUp}
+                className="flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-500/25 transition-colors"
+              >
+                <ArrowUp className="w-4 h-4" /> Level Up to {target} WPM
+              </button>
+            )}
             <button
               onClick={() => setShowQuiz(true)}
               className="flex items-center gap-2 bg-primary/15 border border-primary/30 text-primary px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/25 transition-colors"
             >
-              <BookOpen className="w-4 h-4" />
-              Test Comprehension
+              <BookOpen className="w-4 h-4" /> Test Comprehension
             </button>
           </div>
         </div>
@@ -330,13 +447,13 @@ export function RSVPTrainer() {
 
       {/* Tips */}
       <div className="mt-6 bg-muted/30 rounded-2xl p-5">
-        <h3 className="font-semibold text-sm mb-3">Cambridge Speed Reading Tips</h3>
+        <h3 className="font-semibold text-sm mb-3">Cambridge Speed Reading Protocol</h3>
         <div className="grid md:grid-cols-2 gap-3">
           {[
-            { tip: "The red letter is the pivot point — focus your eye here to reduce saccades (eye jumps)", icon: "🎯" },
-            { tip: "Start at 250 WPM and increase only when you can answer comprehension questions correctly", icon: "📈" },
-            { tip: "Analytical reading (Cambridge method) + RSVP training = both speed AND comprehension", icon: "🧠" },
-            { tip: "Average adult reads 200–250 WPM. MCAT time pressure requires 400+ WPM with 80%+ comprehension", icon: "⏱️" },
+            { tip: "Red letter = pivot point. Lock your eye here. Eliminates saccades (eye jumps) that slow reading.", icon: "🎯" },
+            { tip: "Advance speed only after 3 consecutive sessions with 80%+ comprehension at current level.", icon: "📈" },
+            { tip: "Analytical reading (Cambridge) + RSVP = both speed AND comprehension improve together.", icon: "🧠" },
+            { tip: "MCAT CARS requires 400+ WPM with 80%+ comprehension under 90-minute pressure. Train there.", icon: "⏱️" },
           ].map((t, i) => (
             <div key={i} className="flex gap-3 text-sm text-muted-foreground">
               <span className="text-base shrink-0">{t.icon}</span>
