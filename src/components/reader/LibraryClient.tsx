@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Search, Clock, BookOpen, RefreshCw, Bookmark, BookmarkCheck,
-  Upload, X, Loader2, FileText, Plus, Sparkles, Globe
+  Upload, X, Loader2, FileText, Plus, Sparkles, Globe, Library, Star
 } from "lucide-react";
 import type { Article, ReadingLevel } from "@/types";
 import { levelLabel, levelBadgeColor, estimateReadTime, countWords, calculateFleschScore, fleschToLevel } from "@/lib/utils";
@@ -18,10 +18,33 @@ interface Props {
   savedBookmarks: Record<string, unknown>[];
 }
 
+interface GutenbergBook {
+  id: number;
+  title: string;
+  authors: { name: string; birth_year: number | null; death_year: number | null }[];
+  subjects: string[];
+  download_count: number;
+  formats: Record<string, string>;
+  bookshelves: string[];
+}
+
+interface GoodreadsBook {
+  id: string;
+  title: string;
+  author: string;
+  description: string;
+  link: string;
+  cover: string;
+  rating: string;
+  dateAdded: string;
+  shelf: string;
+}
+
 const ALL_INTERESTS = [
   "Philosophy", "Science", "History", "Medicine",
   "Technology", "Literature", "Psychology", "Economics",
   "Politics", "Environment", "Arts", "Biology",
+  "Fiction", "Nonfiction", "Finance", "Self-Help",
 ];
 
 const INTEREST_KEYWORDS: Record<string, string[]> = {
@@ -37,6 +60,10 @@ const INTEREST_KEYWORDS: Record<string, string[]> = {
   Environment: ["environment", "climate", "ecology", "nature", "carbon", "species", "ocean"],
   Arts: ["art", "music", "culture", "aesthetic", "museum", "painting", "architecture"],
   Biology: ["biology", "evolution", "gene", "organism", "cell", "species", "darwin", "ecology"],
+  Fiction: ["fiction", "novel", "story", "character", "plot", "narrative", "fantasy", "drama"],
+  Nonfiction: ["nonfiction", "memoir", "biography", "essay", "journalism", "investigation", "true story"],
+  Finance: ["finance", "investing", "stocks", "wealth", "money", "portfolio", "market", "capital", "banking"],
+  "Self-Help": ["self-help", "productivity", "habit", "mindset", "motivation", "success", "leadership", "growth"],
 };
 
 function articleMatchesInterests(article: Article, interests: string[]): boolean {
@@ -47,7 +74,7 @@ function articleMatchesInterests(article: Article, interests: string[]): boolean
   );
 }
 
-type Tab = "foryou" | "all" | "saved" | "uploads";
+type Tab = "foryou" | "all" | "saved" | "uploads" | "gutenberg" | "goodreads";
 
 export function LibraryClient({ userId, initialInterests, savedBookmarks }: Props) {
   const supabase = createClient();
@@ -76,6 +103,19 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
   const [uploadError, setUploadError] = useState("");
   const [userDocs, setUserDocs] = useState<Record<string, unknown>[]>([]);
   const [docsLoading, setDocsLoading] = useState(false);
+
+  // Gutenberg state
+  const [gutenbergSearch, setGutenbergSearch] = useState("");
+  const [gutenbergBooks, setGutenbergBooks] = useState<GutenbergBook[]>([]);
+  const [gutenbergLoading, setGutenbergLoading] = useState(false);
+  const [loadingBookId, setLoadingBookId] = useState<number | null>(null);
+
+  // Goodreads state
+  const [goodreadsUserId, setGoodreadsUserId] = useState("");
+  const [goodreadsShelf, setGoodreadsShelf] = useState<"currently-reading" | "to-read" | "read">("currently-reading");
+  const [goodreadsBooks, setGoodreadsBooks] = useState<GoodreadsBook[]>([]);
+  const [goodreadsLoading, setGoodreadsLoading] = useState(false);
+  const [goodreadsError, setGoodreadsError] = useState("");
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
@@ -107,6 +147,77 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
 
   useEffect(() => { fetchArticles(); }, [fetchArticles]);
   useEffect(() => { if (tab === "uploads") fetchUserDocs(); }, [tab, fetchUserDocs]);
+  useEffect(() => {
+    if (tab === "gutenberg" && gutenbergBooks.length === 0) fetchGutenbergPopular();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
+
+  async function fetchGutenbergPopular() {
+    setGutenbergLoading(true);
+    try {
+      const res = await fetch("/api/gutenberg?mode=popular");
+      const data = await res.json();
+      setGutenbergBooks(Array.isArray(data) ? data : []);
+    } catch { setGutenbergBooks([]); }
+    finally { setGutenbergLoading(false); }
+  }
+
+  async function searchGutenberg(query: string) {
+    setGutenbergLoading(true);
+    try {
+      const res = await fetch(`/api/gutenberg?mode=search&search=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setGutenbergBooks(Array.isArray(data) ? data : []);
+    } catch { setGutenbergBooks([]); }
+    finally { setGutenbergLoading(false); }
+  }
+
+  async function openGutenbergBook(book: GutenbergBook) {
+    setLoadingBookId(book.id);
+    try {
+      const res = await fetch(`/api/gutenberg?mode=text&id=${book.id}`);
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      const authorName = book.authors[0]?.name ?? "Unknown Author";
+      const article: Article = {
+        id: `gutenberg-${book.id}`,
+        title: data.title ?? book.title,
+        source: "Project Gutenberg",
+        source_url: `https://www.gutenberg.org/ebooks/${book.id}`,
+        content: data.excerpt,
+        excerpt: data.excerpt.slice(0, 200) + "...",
+        author: authorName,
+        published_at: new Date().toISOString(),
+        topic: book.subjects.slice(0, 3),
+        reading_level: "college",
+        flesch_score: 50,
+        word_count: data.excerptWordCount,
+        estimated_wpm: data.excerptWordCount,
+        essay_type: "narrative",
+        image_url: "",
+        cached_at: new Date().toISOString(),
+      };
+      if (userId) logView(article.id);
+      const url = `/library/${article.id}?data=${encodeURIComponent(JSON.stringify(article))}`;
+      window.location.href = url;
+    } catch { alert("Failed to load book text."); }
+    finally { setLoadingBookId(null); }
+  }
+
+  async function fetchGoodreads() {
+    if (!goodreadsUserId.trim()) return;
+    setGoodreadsLoading(true);
+    setGoodreadsError("");
+    try {
+      const res = await fetch(`/api/goodreads?userId=${goodreadsUserId.trim()}&shelf=${goodreadsShelf}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setGoodreadsBooks(data.books ?? []);
+    } catch (err: unknown) {
+      setGoodreadsError(err instanceof Error ? err.message : "Failed to fetch shelf");
+      setGoodreadsBooks([]);
+    } finally { setGoodreadsLoading(false); }
+  }
 
   async function saveInterests(updated: string[]) {
     setInterests(updated);
@@ -182,6 +293,8 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
   const TABS = [
     { id: "foryou" as Tab, label: "For You", icon: Sparkles, count: forYou.length },
     { id: "all" as Tab, label: "All Articles", icon: Globe, count: allFiltered.length },
+    { id: "gutenberg" as Tab, label: "Classic Books", icon: Library, count: 0 },
+    { id: "goodreads" as Tab, label: "Goodreads", icon: Star, count: goodreadsBooks.length },
     { id: "saved" as Tab, label: "Saved", icon: Bookmark, count: bookmarkedIds.size },
     { id: "uploads" as Tab, label: "My Uploads", icon: Upload, count: userDocs.length },
   ];
@@ -568,6 +681,170 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* GUTENBERG */}
+      {tab === "gutenberg" && (
+        <div>
+          <div className="flex gap-2 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={gutenbergSearch}
+                onChange={(e) => setGutenbergSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && gutenbergSearch.trim()) searchGutenberg(gutenbergSearch); }}
+                placeholder="Search 70,000+ free books (e.g. Nietzsche, Austen, Darwin)..."
+                className="w-full bg-input border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+              />
+            </div>
+            <button
+              onClick={() => gutenbergSearch.trim() ? searchGutenberg(gutenbergSearch) : fetchGutenbergPopular()}
+              disabled={gutenbergLoading}
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {gutenbergLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              {gutenbergSearch.trim() ? "Search" : "Popular"}
+            </button>
+          </div>
+
+          {gutenbergLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-44" />)}
+            </div>
+          ) : gutenbergBooks.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Library className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>Search for any author, title, or subject</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {gutenbergBooks.map((book) => (
+                <div key={book.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col hover:border-primary/40 transition-all">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                      Gutenberg
+                    </span>
+                    <span className="text-xs text-muted-foreground">#{book.download_count?.toLocaleString()} downloads</span>
+                  </div>
+                  <h3 className="font-semibold text-sm leading-snug mb-1 flex-1 line-clamp-2">{book.title}</h3>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {book.authors.map((a) => a.name.split(", ").reverse().join(" ")).join(", ")}
+                    {book.authors[0]?.birth_year && ` (${book.authors[0].birth_year}–${book.authors[0].death_year ?? ""})`}
+                  </p>
+                  {book.subjects.length > 0 && (
+                    <p className="text-xs text-muted-foreground mb-3 line-clamp-1">
+                      {book.subjects.slice(0, 2).join(" · ")}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => openGutenbergBook(book)}
+                    disabled={loadingBookId === book.id}
+                    className="w-full flex items-center justify-center gap-2 bg-primary/15 border border-primary/30 text-primary text-sm font-medium py-2 rounded-lg hover:bg-primary/25 transition-colors disabled:opacity-50"
+                  >
+                    {loadingBookId === book.id ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</>
+                    ) : (
+                      <><BookOpen className="w-4 h-4" /> Read First 6,000 Words</>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-4 text-center">
+            70,000+ free public domain books · First 6,000 words loaded for Cambridge Mode reading
+          </p>
+        </div>
+      )}
+
+      {/* GOODREADS */}
+      {tab === "goodreads" && (
+        <div>
+          <div className="bg-card border border-border rounded-2xl p-5 mb-6">
+            <h2 className="font-semibold mb-1">Connect Goodreads Shelf</h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Goodreads profile must be <strong>public</strong>. Find your User ID in your profile URL:
+              goodreads.com/user/show/<strong>12345678</strong>
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              <input
+                type="text"
+                value={goodreadsUserId}
+                onChange={(e) => setGoodreadsUserId(e.target.value)}
+                placeholder="Goodreads User ID (e.g. 12345678)"
+                className="flex-1 min-w-[200px] bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+              />
+              <select
+                value={goodreadsShelf}
+                onChange={(e) => setGoodreadsShelf(e.target.value as "currently-reading" | "to-read" | "read")}
+                className="bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary"
+              >
+                <option value="currently-reading">Currently Reading</option>
+                <option value="to-read">Want to Read</option>
+                <option value="read">Read</option>
+              </select>
+              <button
+                onClick={fetchGoodreads}
+                disabled={goodreadsLoading || !goodreadsUserId.trim()}
+                className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {goodreadsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
+                Fetch Shelf
+              </button>
+            </div>
+            {goodreadsError && (
+              <p className="text-sm text-destructive mt-3">{goodreadsError}</p>
+            )}
+          </div>
+
+          {goodreadsBooks.length === 0 && !goodreadsLoading ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Star className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium mb-1">No shelf loaded yet</p>
+              <p className="text-sm">Enter your Goodreads User ID above to import your shelf</p>
+            </div>
+          ) : goodreadsLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1,2,3].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-44" />)}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {goodreadsBooks.map((book) => (
+                <a
+                  key={book.id}
+                  href={book.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex gap-4"
+                >
+                  {book.cover && (
+                    <img src={book.cover} alt={book.title} className="w-16 h-24 object-cover rounded-lg shrink-0" />
+                  )}
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0">
+                        Goodreads
+                      </span>
+                      {book.rating && (
+                        <span className="text-xs text-yellow-400">{"★".repeat(Number(book.rating))}</span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+                      {book.title}
+                    </h3>
+                    {book.author && <p className="text-xs text-muted-foreground mb-2">{book.author}</p>}
+                    <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{book.description}</p>
+                    <p className="text-xs text-primary mt-2">Open on Goodreads →</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-4 text-center">
+            Goodreads shows your reading list · upload the book via My Uploads to read it with Cambridge Mode
+          </p>
         </div>
       )}
 
