@@ -2,38 +2,90 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Search, Filter, Clock, BookOpen, RefreshCw } from "lucide-react";
+import {
+  Search, Clock, BookOpen, RefreshCw, Bookmark, BookmarkCheck,
+  Upload, X, Loader2, FileText, Plus, Sparkles, Globe
+} from "lucide-react";
 import type { Article, ReadingLevel } from "@/types";
-import { levelLabel, levelBadgeColor, estimateReadTime } from "@/lib/utils";
+import { levelLabel, levelBadgeColor, estimateReadTime, countWords, calculateFleschScore, fleschToLevel } from "@/lib/utils";
 import { format } from "date-fns";
 import { RSS_FEEDS } from "@/lib/rss";
+import { createClient } from "@/lib/supabase/client";
 
-const LEVELS: { value: ReadingLevel | "all"; label: string }[] = [
-  { value: "all", label: "All Levels" },
-  { value: "elementary", label: "Elementary" },
-  { value: "middle", label: "Middle" },
-  { value: "high-school", label: "High School" },
-  { value: "college", label: "College" },
-  { value: "graduate", label: "Graduate" },
-  { value: "professional", label: "Professional" },
+interface Props {
+  userId: string | null;
+  initialInterests: string[];
+  savedBookmarks: Record<string, unknown>[];
+}
+
+const ALL_INTERESTS = [
+  "Philosophy", "Science", "History", "Medicine",
+  "Technology", "Literature", "Psychology", "Economics",
+  "Politics", "Environment", "Arts", "Biology",
 ];
 
-export function LibraryClient() {
+const INTEREST_KEYWORDS: Record<string, string[]> = {
+  Philosophy: ["philosophy", "ethics", "moral", "epistemology", "metaphysics", "logic", "consciousness"],
+  Science: ["science", "research", "discovery", "physics", "chemistry", "astronomy", "quantum"],
+  History: ["history", "historical", "ancient", "civilization", "war", "empire", "century"],
+  Medicine: ["medicine", "medical", "health", "disease", "clinical", "patient", "therapy", "drug"],
+  Technology: ["technology", "ai", "software", "digital", "computer", "internet", "algorithm", "data"],
+  Literature: ["literature", "novel", "poetry", "fiction", "writer", "narrative", "story", "book"],
+  Psychology: ["psychology", "mind", "behavior", "cognitive", "mental", "neuroscience", "brain"],
+  Economics: ["economics", "economy", "market", "finance", "trade", "policy", "growth", "inequality"],
+  Politics: ["politics", "government", "democracy", "election", "power", "law", "justice", "rights"],
+  Environment: ["environment", "climate", "ecology", "nature", "carbon", "species", "ocean"],
+  Arts: ["art", "music", "culture", "aesthetic", "museum", "painting", "architecture"],
+  Biology: ["biology", "evolution", "gene", "organism", "cell", "species", "darwin", "ecology"],
+};
+
+function articleMatchesInterests(article: Article, interests: string[]): boolean {
+  if (interests.length === 0) return false;
+  const text = `${article.title} ${article.excerpt} ${article.topic.join(" ")}`.toLowerCase();
+  return interests.some((interest) =>
+    (INTEREST_KEYWORDS[interest] ?? [interest.toLowerCase()]).some((kw) => text.includes(kw))
+  );
+}
+
+type Tab = "foryou" | "all" | "saved" | "uploads";
+
+export function LibraryClient({ userId, initialInterests, savedBookmarks }: Props) {
+  const supabase = createClient();
+  const [tab, setTab] = useState<Tab>(initialInterests.length > 0 ? "foryou" : "all");
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState<ReadingLevel | "all">("all");
   const [source, setSource] = useState("all");
+  const [interests, setInterests] = useState<string[]>(initialInterests);
+  const [showInterestPicker, setShowInterestPicker] = useState(false);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
+    new Set(savedBookmarks.map((b) => b.article_id as string))
+  );
+  const [bookmarkData, setBookmarkData] = useState<Article[]>(
+    savedBookmarks.map((b) => b.article_data as unknown as Article)
+  );
+
+  // Upload state
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadAuthor, setUploadAuthor] = useState("");
+  const [uploadText, setUploadText] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [userDocs, setUserDocs] = useState<Record<string, unknown>[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "50" });
+      const params = new URLSearchParams({ limit: "60" });
       if (level !== "all") params.set("level", level);
       if (source !== "all") params.set("source", source);
       const res = await fetch(`/api/articles?${params}`);
       const data = await res.json();
-      setArticles(data);
+      setArticles(Array.isArray(data) ? data : []);
     } catch {
       setArticles([]);
     } finally {
@@ -41,17 +93,98 @@ export function LibraryClient() {
     }
   }, [level, source]);
 
-  useEffect(() => {
-    fetchArticles();
-  }, [fetchArticles]);
+  const fetchUserDocs = useCallback(async () => {
+    if (!userId) return;
+    setDocsLoading(true);
+    const { data } = await supabase
+      .from("user_documents")
+      .select("*")
+      .eq("user_id", userId)
+      .order("uploaded_at", { ascending: false });
+    setUserDocs(data ?? []);
+    setDocsLoading(false);
+  }, [userId, supabase]);
 
-  const filtered = articles.filter(
-    (a) =>
-      !search ||
-      a.title.toLowerCase().includes(search.toLowerCase()) ||
-      a.source.toLowerCase().includes(search.toLowerCase()) ||
-      a.topic.some((t) => t.toLowerCase().includes(search.toLowerCase()))
-  );
+  useEffect(() => { fetchArticles(); }, [fetchArticles]);
+  useEffect(() => { if (tab === "uploads") fetchUserDocs(); }, [tab, fetchUserDocs]);
+
+  async function saveInterests(updated: string[]) {
+    setInterests(updated);
+    if (!userId) return;
+    await supabase.from("profiles").update({ interests: updated }).eq("id", userId);
+  }
+
+  async function toggleBookmark(article: Article) {
+    if (!userId) return;
+    const isBookmarked = bookmarkedIds.has(article.id);
+    if (isBookmarked) {
+      await supabase.from("bookmarks").delete().eq("user_id", userId).eq("article_id", article.id);
+      setBookmarkedIds((prev) => { const n = new Set(prev); n.delete(article.id); return n; });
+      setBookmarkData((prev) => prev.filter((a) => a.id !== article.id));
+    } else {
+      await supabase.from("bookmarks").upsert({
+        user_id: userId,
+        article_id: article.id,
+        article_data: article as unknown as Record<string, unknown>,
+      });
+      setBookmarkedIds((prev) => new Set([...prev, article.id]));
+      setBookmarkData((prev) => [article, ...prev]);
+    }
+  }
+
+  async function logView(articleId: string) {
+    if (!userId) return;
+    await supabase.from("reading_sessions").insert({
+      user_id: userId,
+      article_id: articleId,
+    }).then(() => {});
+  }
+
+  async function handleUpload() {
+    setUploading(true);
+    setUploadError("");
+    const fd = new FormData();
+    fd.append("title", uploadTitle || (uploadFile?.name.replace(/\.[^/.]+$/, "") ?? "Untitled"));
+    fd.append("author", uploadAuthor);
+    if (uploadFile) fd.append("file", uploadFile);
+    else fd.append("text", uploadText);
+
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      setShowUpload(false);
+      setUploadTitle(""); setUploadAuthor(""); setUploadText(""); setUploadFile(null);
+      setTab("uploads");
+      fetchUserDocs();
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  // Filter logic
+  const searchLower = search.toLowerCase();
+  const applySearch = (a: Article) =>
+    !search ||
+    a.title.toLowerCase().includes(searchLower) ||
+    a.source.toLowerCase().includes(searchLower) ||
+    a.topic.some((t) => t.toLowerCase().includes(searchLower));
+
+  const applyLevel = (a: Article) => level === "all" || a.reading_level === level;
+
+  const forYou = articles.filter((a) => articleMatchesInterests(a, interests) && applySearch(a) && applyLevel(a));
+  const explore = articles.filter((a) => !articleMatchesInterests(a, interests) && applySearch(a) && applyLevel(a));
+  const allFiltered = articles.filter((a) => applySearch(a) && applyLevel(a));
+  const savedFiltered = bookmarkData.filter((a) => applySearch(a) && applyLevel(a));
+
+  const TABS = [
+    { id: "foryou" as Tab, label: "For You", icon: Sparkles, count: forYou.length },
+    { id: "all" as Tab, label: "All Articles", icon: Globe, count: allFiltered.length },
+    { id: "saved" as Tab, label: "Saved", icon: Bookmark, count: bookmarkedIds.size },
+    { id: "uploads" as Tab, label: "My Uploads", icon: Upload, count: userDocs.length },
+  ];
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
@@ -60,19 +193,91 @@ export function LibraryClient() {
         <div>
           <h1 className="text-3xl font-bold mb-1">Article Library</h1>
           <p className="text-muted-foreground text-sm">
-            Curated reads from 9 sources, sorted by difficulty
+            Live feeds from 9 sources · personalized by your interests
           </p>
         </div>
-        <button
-          onClick={fetchArticles}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-lg px-3 py-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowUpload(true)}
+            className="flex items-center gap-2 text-sm bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition-colors rounded-lg px-3 py-2"
+          >
+            <Upload className="w-4 h-4" /> Upload
+          </button>
+          <button
+            onClick={fetchArticles}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-lg px-3 py-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {/* Filters */}
+      {/* Interest chips */}
+      <div className="mb-5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground font-medium">Interests:</span>
+          {interests.map((interest) => (
+            <button
+              key={interest}
+              onClick={() => saveInterests(interests.filter((i) => i !== interest))}
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition-colors"
+            >
+              {interest} <X className="w-3 h-3" />
+            </button>
+          ))}
+          <button
+            onClick={() => setShowInterestPicker(!showInterestPicker)}
+            className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
+          >
+            <Plus className="w-3 h-3" /> Add interest
+          </button>
+        </div>
+        {showInterestPicker && (
+          <div className="mt-3 flex flex-wrap gap-2 p-4 bg-card border border-border rounded-xl">
+            {ALL_INTERESTS.filter((i) => !interests.includes(i)).map((interest) => (
+              <button
+                key={interest}
+                onClick={() => {
+                  saveInterests([...interests, interest]);
+                  if (tab === "all" && interests.length === 0) setTab("foryou");
+                }}
+                className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
+              >
+                {interest}
+              </button>
+            ))}
+            {interests.length === ALL_INTERESTS.length && (
+              <p className="text-xs text-muted-foreground">All interests selected</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-border mb-6">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              tab === t.id
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <t.icon className="w-3.5 h-3.5" />
+            {t.label}
+            {t.count > 0 && (
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.id ? "bg-primary/20" : "bg-muted"}`}>
+                {t.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Search + filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -80,116 +285,401 @@ export function LibraryClient() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search articles, topics..."
+            placeholder="Search articles, topics, sources..."
             className="w-full bg-input border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
           />
         </div>
-        <select
-          value={level}
-          onChange={(e) => setLevel(e.target.value as ReadingLevel | "all")}
-          className="bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
-        >
-          {LEVELS.map((l) => (
-            <option key={l.value} value={l.value}>
-              {l.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={source}
-          onChange={(e) => setSource(e.target.value)}
-          className="bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
-        >
-          <option value="all">All Sources</option>
-          {RSS_FEEDS.map((f) => (
-            <option key={f.name} value={f.name}>
-              {f.name}
-            </option>
-          ))}
-        </select>
+        {tab !== "uploads" && (
+          <>
+            <select
+              value={level}
+              onChange={(e) => setLevel(e.target.value as ReadingLevel | "all")}
+              className="bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+            >
+              <option value="all">All Levels</option>
+              {["elementary","middle","high-school","college","graduate","professional"].map((l) => (
+                <option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>
+              ))}
+            </select>
+            <select
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              className="bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+            >
+              <option value="all">All Sources</option>
+              {RSS_FEEDS.map((f) => (
+                <option key={f.name} value={f.name}>{f.name}</option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
-      {/* Grid */}
-      {loading ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-card border border-border rounded-2xl p-5 animate-pulse"
-            >
-              <div className="h-4 bg-muted rounded mb-3 w-3/4" />
-              <div className="h-3 bg-muted rounded mb-2 w-1/2" />
-              <div className="h-16 bg-muted rounded mb-4" />
-              <div className="h-3 bg-muted rounded w-1/3" />
+      {/* Content by tab */}
+      {tab === "foryou" && (
+        <div className="space-y-8">
+          {interests.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Sparkles className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium mb-1">No interests set yet</p>
+              <p className="text-sm">Add interests above to see personalized articles</p>
             </div>
-          ))}
+          ) : (
+            <>
+              {/* Matched articles */}
+              <div>
+                <h2 className="font-semibold mb-4 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" /> Based on your interests
+                  <span className="text-xs text-muted-foreground font-normal">({forYou.length})</span>
+                </h2>
+                <ArticleGrid
+                  articles={loading ? [] : forYou}
+                  loading={loading}
+                  empty="No matches for your interests in today's feed. Try refreshing."
+                  bookmarkedIds={bookmarkedIds}
+                  onBookmark={toggleBookmark}
+                  onView={logView}
+                />
+              </div>
+              {/* Explore outside comfort zone */}
+              {!loading && explore.length > 0 && (
+                <div>
+                  <h2 className="font-semibold mb-1 text-muted-foreground flex items-center gap-2">
+                    <Globe className="w-4 h-4" /> Expand your horizons
+                  </h2>
+                  <p className="text-xs text-muted-foreground mb-4">Outside your usual interests — good for CARS breadth</p>
+                  <ArticleGrid
+                    articles={explore.slice(0, 9)}
+                    loading={false}
+                    empty=""
+                    bookmarkedIds={bookmarkedIds}
+                    onBookmark={toggleBookmark}
+                    onView={logView}
+                  />
+                </div>
+              )}
+            </>
+          )}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p>No articles found. Try adjusting your filters.</p>
+      )}
+
+      {tab === "all" && (
+        <ArticleGrid
+          articles={loading ? [] : allFiltered}
+          loading={loading}
+          empty="No articles found. Try adjusting filters or refreshing."
+          bookmarkedIds={bookmarkedIds}
+          onBookmark={toggleBookmark}
+          onView={logView}
+        />
+      )}
+
+      {tab === "saved" && (
+        bookmarkedIds.size === 0 ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <Bookmark className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium mb-1">No saved articles yet</p>
+            <p className="text-sm">Click the bookmark icon on any article to save it</p>
+          </div>
+        ) : (
+          <ArticleGrid
+            articles={savedFiltered}
+            loading={false}
+            empty="No saved articles match your search."
+            bookmarkedIds={bookmarkedIds}
+            onBookmark={toggleBookmark}
+            onView={logView}
+          />
+        )
+      )}
+
+      {tab === "uploads" && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">{userDocs.length} uploaded document{userDocs.length !== 1 ? "s" : ""}</p>
+            <button
+              onClick={() => setShowUpload(true)}
+              className="flex items-center gap-2 text-sm bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition-colors rounded-lg px-3 py-1.5"
+            >
+              <Plus className="w-4 h-4" /> Upload New
+            </button>
+          </div>
+          {docsLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1,2,3].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-40" />)}
+            </div>
+          ) : userDocs.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium mb-1">No uploads yet</p>
+              <p className="text-sm">Upload a PDF, text file, or paste content directly</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {userDocs.map((doc) => {
+                const d = doc as Record<string, unknown>;
+                const article: Article = {
+                  id: d.id as string,
+                  title: d.title as string,
+                  source: "My Uploads",
+                  source_url: "",
+                  content: d.content as string,
+                  excerpt: (d.content as string).slice(0, 150) + "...",
+                  author: (d.author as string) ?? "",
+                  published_at: d.uploaded_at as string,
+                  topic: [],
+                  reading_level: (d.reading_level as string) as import("@/types").ReadingLevel,
+                  flesch_score: d.flesch_score as number,
+                  word_count: d.word_count as number,
+                  estimated_wpm: d.word_count as number,
+                  essay_type: "expository",
+                  image_url: "",
+                  cached_at: d.uploaded_at as string,
+                };
+                return (
+                  <Link
+                    key={d.id as string}
+                    href={`/library/${article.id}?data=${encodeURIComponent(JSON.stringify(article))}`}
+                    className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex flex-col"
+                  >
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${levelBadgeColor(article.reading_level)}`}>
+                        {levelLabel(article.reading_level)}
+                      </span>
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        {String(d.file_type ?? "FILE").toUpperCase()}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-sm leading-snug mb-2 group-hover:text-primary transition-colors flex-1">
+                      {String(d.title ?? "")}
+                    </h3>
+                    {!!d.author && <p className="text-xs text-muted-foreground mb-2">{String(d.author)}</p>}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto">
+                      <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{estimateReadTime(d.word_count as number)} min</span>
+                      <span>{(d.word_count as number).toLocaleString()} words</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((article) => (
-            <ArticleCard key={article.id} article={article} />
-          ))}
+      )}
+
+      {/* Upload Modal */}
+      {showUpload && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg shadow-xl">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-bold text-lg">Upload Document</h2>
+              <button onClick={() => { setShowUpload(false); setUploadError(""); }} className="text-muted-foreground hover:text-foreground">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {uploadError && (
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg px-4 py-3 mb-4">
+                {uploadError}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Title</label>
+                <input
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="Document title (auto-detected from filename)"
+                  className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Author <span className="text-muted-foreground font-normal">(optional)</span></label>
+                <input
+                  type="text"
+                  value={uploadAuthor}
+                  onChange={(e) => setUploadAuthor(e.target.value)}
+                  placeholder="e.g. David Hume"
+                  className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+                />
+              </div>
+
+              {/* File upload OR paste */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">Content</label>
+                <div className="space-y-3">
+                  <div
+                    className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                    onClick={() => document.getElementById("file-input")?.click()}
+                  >
+                    <input
+                      id="file-input"
+                      type="file"
+                      accept=".pdf,.txt,.md"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        setUploadFile(f);
+                        if (f) setUploadText("");
+                      }}
+                    />
+                    {uploadFile ? (
+                      <div className="flex items-center justify-center gap-2 text-sm text-primary">
+                        <FileText className="w-4 h-4" />
+                        {uploadFile.name}
+                        <button onClick={(e) => { e.stopPropagation(); setUploadFile(null); }} className="text-muted-foreground hover:text-foreground">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">
+                        <Upload className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Drop PDF, TXT, or MD file here</p>
+                        <p className="text-xs mt-1">or click to browse</p>
+                      </div>
+                    )}
+                  </div>
+                  {!uploadFile && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-px bg-border" />
+                        <span className="text-xs text-muted-foreground">or paste text</span>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      <textarea
+                        value={uploadText}
+                        onChange={(e) => setUploadText(e.target.value)}
+                        placeholder="Paste article, book chapter, or any text here..."
+                        className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors h-32 resize-none"
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={handleUpload}
+                disabled={uploading || (!uploadFile && uploadText.trim().length < 100)}
+                className="w-full bg-primary text-primary-foreground py-2.5 rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {uploading ? "Processing..." : "Upload & Analyze"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       <p className="text-xs text-muted-foreground mt-6 text-center">
-        {filtered.length} articles from{" "}
-        {[...new Set(filtered.map((a) => a.source))].length} sources
+        Articles refresh live from RSS feeds · reading history logged automatically
       </p>
     </div>
   );
 }
 
-function ArticleCard({ article }: { article: Article }) {
+function ArticleGrid({
+  articles, loading, empty, bookmarkedIds, onBookmark, onView
+}: {
+  articles: Article[];
+  loading: boolean;
+  empty: string;
+  bookmarkedIds: Set<string>;
+  onBookmark: (a: Article) => void;
+  onView: (id: string) => void;
+}) {
+  if (loading) return (
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: 9 }).map((_, i) => (
+        <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse">
+          <div className="h-4 bg-muted rounded mb-3 w-3/4" />
+          <div className="h-3 bg-muted rounded mb-2 w-1/2" />
+          <div className="h-16 bg-muted rounded mb-4" />
+          <div className="h-3 bg-muted rounded w-1/3" />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (articles.length === 0) return (
+    <div className="text-center py-16 text-muted-foreground">
+      <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+      <p className="text-sm">{empty}</p>
+    </div>
+  );
+
+  return (
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {articles.map((article) => (
+        <ArticleCard
+          key={article.id}
+          article={article}
+          isBookmarked={bookmarkedIds.has(article.id)}
+          onBookmark={onBookmark}
+          onView={onView}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ArticleCard({
+  article, isBookmarked, onBookmark, onView
+}: {
+  article: Article;
+  isBookmarked: boolean;
+  onBookmark: (a: Article) => void;
+  onView: (id: string) => void;
+}) {
   const readTime = estimateReadTime(article.word_count);
 
   return (
-    <Link
-      href={`/library/${article.id}?data=${encodeURIComponent(JSON.stringify(article))}`}
-      className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex flex-col"
-    >
-      {article.image_url && (
-        <div
-          className="w-full h-28 rounded-xl bg-muted mb-4 bg-cover bg-center"
-          style={{ backgroundImage: `url(${article.image_url})` }}
-        />
-      )}
-      <div className="flex items-start gap-2 mb-2">
-        <span
-          className={`text-xs font-medium px-2 py-0.5 rounded-full ${levelBadgeColor(article.reading_level)}`}
-        >
-          {levelLabel(article.reading_level)}
-        </span>
-        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-          {article.source}
-        </span>
-      </div>
-      <h3 className="font-semibold text-sm leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors flex-1">
-        {article.title}
-      </h3>
-      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-        {article.excerpt}
-      </p>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto">
-        <span className="flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          {readTime} min read
-        </span>
-        <span className="flex items-center gap-1">
-          <Filter className="w-3 h-3" />
-          {article.flesch_score} Flesch
-        </span>
-        {article.published_at && (
-          <span className="ml-auto">
-            {format(new Date(article.published_at), "MMM d")}
-          </span>
+    <div className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex flex-col relative">
+      {/* Bookmark button */}
+      <button
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBookmark(article); }}
+        className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors z-10"
+      >
+        {isBookmarked
+          ? <BookmarkCheck className="w-4 h-4 text-primary" />
+          : <Bookmark className="w-4 h-4" />}
+      </button>
+
+      <Link
+        href={`/library/${article.id}?data=${encodeURIComponent(JSON.stringify(article))}`}
+        onClick={() => onView(article.id)}
+        className="flex flex-col flex-1"
+      >
+        {article.image_url && (
+          <div
+            className="w-full h-28 rounded-xl bg-muted mb-4 bg-cover bg-center"
+            style={{ backgroundImage: `url(${article.image_url})` }}
+          />
         )}
-      </div>
-    </Link>
+        <div className="flex items-start gap-2 mb-2 pr-7">
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${levelBadgeColor(article.reading_level)}`}>
+            {levelLabel(article.reading_level)}
+          </span>
+          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full truncate">
+            {article.source}
+          </span>
+        </div>
+        <h3 className="font-semibold text-sm leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors flex-1 pr-4">
+          {article.title}
+        </h3>
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+          {article.excerpt}
+        </p>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />{readTime} min
+          </span>
+          <span>Flesch {article.flesch_score}</span>
+          {article.published_at && (
+            <span className="ml-auto">{format(new Date(article.published_at), "MMM d")}</span>
+          )}
+        </div>
+      </Link>
+    </div>
   );
 }
