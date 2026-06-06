@@ -34,7 +34,12 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
-  const [error, setError] = useState("");
+
+  // Show real error from OAuth callback redirect
+  const searchParams = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search)
+    : new URLSearchParams();
+  const [error, setError] = useState(decodeURIComponent(searchParams.get("error") ?? ""));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
