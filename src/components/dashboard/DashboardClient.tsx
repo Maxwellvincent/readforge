@@ -22,6 +22,7 @@ import {
   TrendingUp,
   Award,
   Flame,
+  ArrowRight,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -122,10 +123,51 @@ export function DashboardClient({
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = (userName.split(" ")[0] || userName).split("@")[0];
 
+  // Personalized recommendation based on baseline
+  const lastComprehension = wpmHistory.length > 0 ? wpmHistory[0].comprehension_score : null;
+  const focusRec = (() => {
+    if (currentWpm < 200) return {
+      label: "Priority: Build Reading Speed",
+      detail: "Your WPM is below 200. Start with RSVP Speed Training to develop fluency before tackling CARS.",
+      href: "/speed",
+      cta: "Open Speed Trainer",
+      icon: Zap,
+      color: "text-yellow-400",
+      bg: "bg-yellow-500/10 border-yellow-500/20",
+    };
+    if (lastComprehension !== null && lastComprehension < 75) return {
+      label: "Priority: Strengthen Comprehension",
+      detail: "Your comprehension score shows room to grow. Work through the Cambridge Grammar Foundation modules first.",
+      href: "/grammar",
+      cta: "Start Grammar Modules",
+      icon: Layers,
+      color: "text-purple-400",
+      bg: "bg-purple-500/10 border-purple-500/20",
+    };
+    if (carsHistory.length === 0) return {
+      label: "Priority: Benchmark Your CARS",
+      detail: "You have solid speed and comprehension. Run a CARS diagnostic to find which question types need work.",
+      href: "/cars",
+      cta: "Start CARS Session",
+      icon: Target,
+      color: "text-red-400",
+      bg: "bg-red-500/10 border-red-500/20",
+    };
+    return {
+      label: "Keep the Momentum",
+      detail: "Read an article with Cambridge Mode on to keep building analytical reading habits.",
+      href: "/library",
+      cta: "Open Article Library",
+      icon: BookOpen,
+      color: "text-indigo-400",
+      bg: "bg-indigo-500/10 border-indigo-500/20",
+    };
+  })();
+
   return (
     <div className="p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold mb-1">
           {greeting}, {firstName} 👋
         </h1>
@@ -135,6 +177,25 @@ export function DashboardClient({
             : "Start your reading session to begin your streak."}
         </p>
       </div>
+
+      {/* Start Here Banner */}
+      <Link
+        href={focusRec.href}
+        className={`flex items-center justify-between gap-4 ${focusRec.bg} border rounded-2xl px-6 py-4 mb-8 group hover:opacity-90 transition-opacity`}
+      >
+        <div className="flex items-center gap-4">
+          <focusRec.icon className={`w-6 h-6 ${focusRec.color} shrink-0`} />
+          <div>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${focusRec.color} mb-0.5`}>
+              {focusRec.label}
+            </p>
+            <p className="text-sm text-muted-foreground">{focusRec.detail}</p>
+          </div>
+        </div>
+        <div className={`flex items-center gap-1.5 text-sm font-medium ${focusRec.color} shrink-0`}>
+          {focusRec.cta} <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+        </div>
+      </Link>
 
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
