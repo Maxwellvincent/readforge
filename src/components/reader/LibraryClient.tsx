@@ -40,6 +40,18 @@ interface GoodreadsBook {
   shelf: string;
 }
 
+interface OLBook {
+  key: string;
+  title: string;
+  authors: string[];
+  firstPublishYear: number | null;
+  coverUrl: string | null;
+  subjects: string[];
+  ia: string | null;
+  pages: number | null;
+  hasFullText: boolean;
+}
+
 const ALL_INTERESTS = [
   "Philosophy", "Science", "History", "Medicine",
   "Technology", "Literature", "Psychology", "Economics",
@@ -74,7 +86,7 @@ function articleMatchesInterests(article: Article, interests: string[]): boolean
   );
 }
 
-type Tab = "foryou" | "all" | "saved" | "uploads" | "gutenberg" | "goodreads";
+type Tab = "foryou" | "all" | "saved" | "uploads" | "gutenberg" | "openlibrary" | "goodreads";
 
 export function LibraryClient({ userId, initialInterests, savedBookmarks }: Props) {
   const supabase = createClient();
@@ -117,6 +129,12 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
   const [goodreadsLoading, setGoodreadsLoading] = useState(false);
   const [goodreadsError, setGoodreadsError] = useState("");
 
+  // Open Library state
+  const [olSearch, setOlSearch] = useState("");
+  const [olBooks, setOlBooks] = useState<OLBook[]>([]);
+  const [olLoading, setOlLoading] = useState(false);
+  const [olLoadingId, setOlLoadingId] = useState<string | null>(null);
+
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
@@ -149,6 +167,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
   useEffect(() => { if (tab === "uploads") fetchUserDocs(); }, [tab, fetchUserDocs]);
   useEffect(() => {
     if (tab === "gutenberg" && gutenbergBooks.length === 0) fetchGutenbergPopular();
+    if (tab === "openlibrary" && olBooks.length === 0) fetchOLPopular();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -217,6 +236,60 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
       setGoodreadsError(err instanceof Error ? err.message : "Failed to fetch shelf");
       setGoodreadsBooks([]);
     } finally { setGoodreadsLoading(false); }
+  }
+
+  async function fetchOLPopular() {
+    setOlLoading(true);
+    try {
+      const res = await fetch("/api/openlibrary?mode=popular");
+      const data = await res.json();
+      setOlBooks(Array.isArray(data) ? data : []);
+    } catch { setOlBooks([]); }
+    finally { setOlLoading(false); }
+  }
+
+  async function searchOL(query: string) {
+    setOlLoading(true);
+    try {
+      const res = await fetch(`/api/openlibrary?mode=search&search=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      setOlBooks(Array.isArray(data) ? data : []);
+    } catch { setOlBooks([]); }
+    finally { setOlLoading(false); }
+  }
+
+  async function openOLBook(book: OLBook) {
+    if (!book.hasFullText || !book.ia) {
+      window.open(`https://openlibrary.org${book.key}`, "_blank");
+      return;
+    }
+    setOlLoadingId(book.key);
+    try {
+      const res = await fetch(`/api/openlibrary?mode=text&ia=${encodeURIComponent(book.ia)}`);
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      const article: Article = {
+        id: `ol-${book.ia}`,
+        title: data.title || book.title,
+        source: "Open Library",
+        source_url: `https://openlibrary.org${book.key}`,
+        content: data.excerpt,
+        excerpt: data.excerpt.slice(0, 200) + "...",
+        author: data.author || book.authors.join(", "),
+        published_at: new Date().toISOString(),
+        topic: book.subjects.slice(0, 3),
+        reading_level: "college",
+        flesch_score: 50,
+        word_count: data.excerptWordCount,
+        estimated_wpm: data.excerptWordCount,
+        essay_type: "narrative",
+        image_url: book.coverUrl ?? "",
+        cached_at: new Date().toISOString(),
+      };
+      if (userId) logView(article.id);
+      window.location.href = `/library/${article.id}?data=${encodeURIComponent(JSON.stringify(article))}`;
+    } catch { alert("Failed to load book text."); }
+    finally { setOlLoadingId(null); }
   }
 
   async function saveInterests(updated: string[]) {
@@ -293,7 +366,8 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
   const TABS = [
     { id: "foryou" as Tab, label: "For You", icon: Sparkles, count: forYou.length },
     { id: "all" as Tab, label: "All Articles", icon: Globe, count: allFiltered.length },
-    { id: "gutenberg" as Tab, label: "Classic Books", icon: Library, count: 0 },
+    { id: "gutenberg" as Tab, label: "Gutenberg", icon: Library, count: 0 },
+    { id: "openlibrary" as Tab, label: "Open Library", icon: BookOpen, count: 0 },
     { id: "goodreads" as Tab, label: "Goodreads", icon: Star, count: goodreadsBooks.length },
     { id: "saved" as Tab, label: "Saved", icon: Bookmark, count: bookmarkedIds.size },
     { id: "uploads" as Tab, label: "My Uploads", icon: Upload, count: userDocs.length },
@@ -306,7 +380,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
         <div>
           <h1 className="text-3xl font-bold mb-1">Article Library</h1>
           <p className="text-muted-foreground text-sm">
-            Live feeds from 9 sources · personalized by your interests
+            Live feeds · Gutenberg · Open Library · Goodreads · personalized by interests
           </p>
         </div>
         <div className="flex gap-2">
@@ -755,6 +829,109 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
           )}
           <p className="text-xs text-muted-foreground mt-4 text-center">
             70,000+ free public domain books · First 6,000 words loaded for Cambridge Mode reading
+          </p>
+        </div>
+      )}
+
+      {/* OPEN LIBRARY */}
+      {tab === "openlibrary" && (
+        <div>
+          <div className="flex gap-2 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={olSearch}
+                onChange={(e) => setOlSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && olSearch.trim()) searchOL(olSearch); }}
+                placeholder="Search 20M+ books (e.g. Marcus Aurelius, Virginia Woolf, James Baldwin)..."
+                className="w-full bg-input border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+              />
+            </div>
+            <button
+              onClick={() => olSearch.trim() ? searchOL(olSearch) : fetchOLPopular()}
+              disabled={olLoading}
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {olLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              {olSearch.trim() ? "Search" : "Popular"}
+            </button>
+          </div>
+
+          {olLoading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-52" />)}
+            </div>
+          ) : olBooks.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>Search over 20 million books from the Open Library catalog</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {olBooks.map((book) => (
+                <div key={book.key} className="bg-card border border-border rounded-2xl p-5 flex flex-col hover:border-primary/40 transition-all">
+                  <div className="flex gap-3 mb-3">
+                    {book.coverUrl ? (
+                      <img
+                        src={book.coverUrl}
+                        alt={book.title}
+                        className="w-14 h-20 object-cover rounded-lg shrink-0 bg-muted"
+                      />
+                    ) : (
+                      <div className="w-14 h-20 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <BookOpen className="w-6 h-6 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                        <span className="text-xs bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                          Open Library
+                        </span>
+                        {book.hasFullText && (
+                          <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full">
+                            Full Text
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{book.title}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {book.authors.slice(0, 2).join(", ")}
+                        {book.firstPublishYear ? ` · ${book.firstPublishYear}` : ""}
+                      </p>
+                      {book.pages && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{book.pages} pages</p>
+                      )}
+                    </div>
+                  </div>
+                  {book.subjects.length > 0 && (
+                    <p className="text-xs text-muted-foreground mb-3 line-clamp-1">
+                      {book.subjects.slice(0, 3).join(" · ")}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => openOLBook(book)}
+                    disabled={olLoadingId === book.key}
+                    className={`w-full flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg transition-colors disabled:opacity-50 mt-auto ${
+                      book.hasFullText
+                        ? "bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25"
+                        : "bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-border"
+                    }`}
+                  >
+                    {olLoadingId === book.key ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</>
+                    ) : book.hasFullText ? (
+                      <><BookOpen className="w-4 h-4" /> Read First 6,000 Words</>
+                    ) : (
+                      <><Globe className="w-4 h-4" /> View on Open Library</>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground mt-4 text-center">
+            Open Library · 20M+ books · Green badge = full text available via Internet Archive
           </p>
         </div>
       )}
