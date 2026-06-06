@@ -44,7 +44,8 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/grammar") ||
     request.nextUrl.pathname.startsWith("/speed") ||
     request.nextUrl.pathname.startsWith("/cars") ||
-    request.nextUrl.pathname.startsWith("/profile");
+    request.nextUrl.pathname.startsWith("/profile") ||
+    request.nextUrl.pathname.startsWith("/onboarding");
 
   if (!user && isApp) {
     return NextResponse.redirect(new URL("/login", request.url));

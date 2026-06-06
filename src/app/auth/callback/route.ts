@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const errorParam = searchParams.get("error");
   const errorDesc = searchParams.get("error_description");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/onboarding";
 
   // Supabase itself returned an error before reaching our callback
   if (errorParam) {
