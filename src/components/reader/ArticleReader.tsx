@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -54,8 +54,40 @@ export function ArticleReader({ article }: Props) {
   const [expandedCue, setExpandedCue] = useState<string | null>(null);
   const startTime = useRef(Date.now());
 
-  const paragraphs = splitIntoParagraphs(article.content || article.excerpt);
-  const readTime = estimateReadTime(article.word_count);
+  // Full article fetching
+  const [fullText, setFullText] = useState<string | null>(null);
+  const [fetchingFull, setFetchingFull] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [fetchBlocked, setFetchBlocked] = useState(false);
+
+  // Content is "short" if under 300 words — means RSS only gave excerpt
+  const rssContent = article.content || article.excerpt || "";
+  const rssWordCount = rssContent.split(/\s+/).filter(Boolean).length;
+  const isShortContent = rssWordCount < 300;
+
+  // Fetch full article on mount if content looks like just an excerpt
+  useEffect(() => {
+    if (isShortContent && article.source_url && !fullText && !fetchingFull && !fetchBlocked) {
+      setFetchingFull(true);
+      fetch(`/api/fetch-article?url=${encodeURIComponent(article.source_url)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.error) {
+            setFetchError(data.error);
+            setFetchBlocked(!!data.blocked);
+          } else if (data.text) {
+            setFullText(data.text);
+          }
+        })
+        .catch(() => setFetchError("Failed to load full article."))
+        .finally(() => setFetchingFull(false));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const displayContent = fullText ?? rssContent;
+  const paragraphs = splitIntoParagraphs(displayContent);
+  const readTime = estimateReadTime(displayContent.split(/\s+/).length);
 
   async function generateQuiz() {
     setLoadingQuiz(true);
@@ -65,7 +97,7 @@ export function ArticleReader({ article }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          passage: article.content || article.excerpt,
+          passage: displayContent,
           mode: "comprehension",
           level: article.reading_level,
           count: 5,
@@ -322,6 +354,41 @@ export function ArticleReader({ article }: Props) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Full-text fetch status */}
+        {fetchingFull && (
+          <div className="flex items-center gap-3 text-sm text-muted-foreground bg-card border border-border rounded-xl px-5 py-4 mb-6">
+            <svg className="w-4 h-4 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            Loading full article from publisher...
+          </div>
+        )}
+        {!fetchingFull && fetchError && (
+          <div className="bg-card border border-border rounded-xl px-5 py-4 mb-6 text-sm">
+            <p className="text-muted-foreground mb-2">{fetchError}</p>
+            {fetchBlocked ? (
+              <a
+                href={article.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary text-xs hover:underline"
+              >
+                Read full article on {article.source} →
+              </a>
+            ) : null}
+            <p className="text-xs text-muted-foreground mt-2 opacity-60">Showing excerpt below.</p>
+          </div>
+        )}
+        {!fetchingFull && fullText && (
+          <div className="flex items-center gap-2 text-xs text-emerald-400 mb-6">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+            </svg>
+            Full article loaded from {article.source}
           </div>
         )}
 
