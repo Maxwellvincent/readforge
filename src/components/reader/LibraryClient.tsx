@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Search, Clock, BookOpen, RefreshCw, Bookmark, BookmarkCheck,
-  Upload, X, Loader2, FileText, Plus, Sparkles, Globe, Library, Star
+  Upload, X, Loader2, FileText, Plus, Sparkles, Globe, Library, Star,
+  BookMarked, ExternalLink, CheckCircle2
 } from "lucide-react";
 import type { Article, ReadingLevel } from "@/types";
 import { levelLabel, levelBadgeColor, estimateReadTime, countWords, calculateFleschScore, fleschToLevel } from "@/lib/utils";
@@ -16,6 +17,24 @@ interface Props {
   userId: string | null;
   initialInterests: string[];
   savedBookmarks: Record<string, unknown>[];
+  initialReadwiseToken?: string | null;
+}
+
+interface ReadwiseDoc {
+  id: string;
+  url: string | null;
+  title: string;
+  author: string | null;
+  category: string;
+  location: string;
+  site_name: string | null;
+  word_count: number | null;
+  created_at: string;
+  summary: string | null;
+  image_url: string | null;
+  reading_progress: number;
+  published_date: string | null;
+  source_url: string | null;
 }
 
 interface GutenbergBook {
@@ -86,9 +105,9 @@ function articleMatchesInterests(article: Article, interests: string[]): boolean
   );
 }
 
-type Tab = "foryou" | "all" | "saved" | "uploads" | "gutenberg" | "openlibrary" | "goodreads";
+type Tab = "foryou" | "all" | "saved" | "uploads" | "gutenberg" | "openlibrary" | "goodreads" | "readwise";
 
-export function LibraryClient({ userId, initialInterests, savedBookmarks }: Props) {
+export function LibraryClient({ userId, initialInterests, savedBookmarks, initialReadwiseToken }: Props) {
   const supabase = createClient();
   const [tab, setTab] = useState<Tab>(initialInterests.length > 0 ? "foryou" : "all");
   const [articles, setArticles] = useState<Article[]>([]);
@@ -135,6 +154,16 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
   const [olLoading, setOlLoading] = useState(false);
   const [olLoadingId, setOlLoadingId] = useState<string | null>(null);
 
+  // Readwise state
+  const [rwToken, setRwToken] = useState(initialReadwiseToken ?? "");
+  const [rwTokenInput, setRwTokenInput] = useState("");
+  const [rwDocs, setRwDocs] = useState<ReadwiseDoc[]>([]);
+  const [rwLoading, setRwLoading] = useState(false);
+  const [rwError, setRwError] = useState("");
+  const [rwLocation, setRwLocation] = useState<"later" | "shortlist" | "archive" | "new">("later");
+  const [rwSaving, setRwSaving] = useState(false);
+  const [rwConnected, setRwConnected] = useState(!!(initialReadwiseToken));
+
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     try {
@@ -168,6 +197,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
   useEffect(() => {
     if (tab === "gutenberg" && gutenbergBooks.length === 0) fetchGutenbergPopular();
     if (tab === "openlibrary" && olBooks.length === 0) fetchOLPopular();
+    if (tab === "readwise" && rwConnected && rwDocs.length === 0) fetchReadwise();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -292,6 +322,81 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
     finally { setOlLoadingId(null); }
   }
 
+  async function fetchReadwise(locationOverride?: string) {
+    const token = rwToken;
+    if (!token) return;
+    setRwLoading(true);
+    setRwError("");
+    try {
+      const loc = locationOverride ?? rwLocation;
+      const res = await fetch(`/api/readwise?token=${encodeURIComponent(token)}&location=${loc}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setRwDocs(data.results ?? []);
+    } catch (err: unknown) {
+      setRwError(err instanceof Error ? err.message : "Failed to fetch Readwise library");
+      setRwDocs([]);
+    } finally {
+      setRwLoading(false);
+    }
+  }
+
+  async function connectReadwise() {
+    if (!rwTokenInput.trim()) return;
+    setRwSaving(true);
+    setRwError("");
+    // Validate token first
+    const testRes = await fetch(`/api/readwise?token=${encodeURIComponent(rwTokenInput.trim())}&location=later`);
+    const testData = await testRes.json();
+    if (testData.error) {
+      setRwError(testData.error);
+      setRwSaving(false);
+      return;
+    }
+    // Save to profile
+    if (userId) {
+      await supabase.from("profiles").update({ readwise_token: rwTokenInput.trim() }).eq("id", userId);
+    }
+    setRwToken(rwTokenInput.trim());
+    setRwTokenInput("");
+    setRwConnected(true);
+    setRwDocs(testData.results ?? []);
+    setRwSaving(false);
+  }
+
+  async function disconnectReadwise() {
+    if (userId) {
+      await supabase.from("profiles").update({ readwise_token: null }).eq("id", userId);
+    }
+    setRwToken("");
+    setRwConnected(false);
+    setRwDocs([]);
+  }
+
+  function openReadwiseDoc(doc: ReadwiseDoc) {
+    if (!doc.url) return;
+    // Build an Article-like object and open in reader (full text will be fetched by Readability)
+    const article = {
+      id: `rw-${doc.id}`,
+      title: doc.title,
+      source: doc.site_name ?? "Readwise",
+      source_url: doc.url,
+      content: doc.summary ?? "",
+      excerpt: doc.summary?.slice(0, 200) ?? "",
+      author: doc.author ?? "",
+      published_at: doc.published_date ?? doc.created_at,
+      topic: [],
+      reading_level: "college",
+      flesch_score: 50,
+      word_count: doc.word_count ?? 0,
+      estimated_wpm: doc.word_count ?? 0,
+      essay_type: "expository",
+      image_url: doc.image_url ?? "",
+      cached_at: new Date().toISOString(),
+    };
+    window.location.href = `/library/${article.id}?data=${encodeURIComponent(JSON.stringify(article))}`;
+  }
+
   async function saveInterests(updated: string[]) {
     setInterests(updated);
     if (!userId) return;
@@ -369,6 +474,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
     { id: "gutenberg" as Tab, label: "Gutenberg", icon: Library, count: 0 },
     { id: "openlibrary" as Tab, label: "Open Library", icon: BookOpen, count: 0 },
     { id: "goodreads" as Tab, label: "Goodreads", icon: Star, count: goodreadsBooks.length },
+    { id: "readwise" as Tab, label: "Readwise", icon: BookMarked, count: rwDocs.length, highlight: rwConnected },
     { id: "saved" as Tab, label: "Saved", icon: Bookmark, count: bookmarkedIds.size },
     { id: "uploads" as Tab, label: "My Uploads", icon: Upload, count: userDocs.length },
   ];
@@ -932,6 +1038,196 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks }: Prop
           )}
           <p className="text-xs text-muted-foreground mt-4 text-center">
             Open Library · 20M+ books · Green badge = full text available via Internet Archive
+          </p>
+        </div>
+      )}
+
+      {/* READWISE */}
+      {tab === "readwise" && (
+        <div>
+          {/* Connect panel */}
+          {!rwConnected ? (
+            <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <BookMarked className="w-5 h-5 text-orange-400" />
+                <h2 className="font-semibold">Connect Readwise</h2>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                Sync your Readwise library — articles, books, PDFs, and highlights saved in Readwise Reader appear here for focused reading with Cambridge Mode + RSVP.
+              </p>
+              <ol className="text-xs text-muted-foreground space-y-1.5 mb-5">
+                <li>1. Go to <a href="https://readwise.io/access_token" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">readwise.io/access_token</a></li>
+                <li>2. Copy your access token</li>
+                <li>3. Paste it below</li>
+              </ol>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={rwTokenInput}
+                  onChange={(e) => setRwTokenInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") connectReadwise(); }}
+                  placeholder="Paste Readwise access token..."
+                  className="flex-1 bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors font-mono"
+                />
+                <button
+                  onClick={connectReadwise}
+                  disabled={rwSaving || !rwTokenInput.trim()}
+                  className="bg-orange-500/15 border border-orange-500/30 text-orange-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-500/25 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {rwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookMarked className="w-4 h-4" />}
+                  Connect
+                </button>
+              </div>
+              {rwError && <p className="text-sm text-destructive mt-3">{rwError}</p>}
+            </div>
+          ) : (
+            /* Connected header */
+            <div className="flex items-center justify-between bg-card border border-border rounded-2xl px-5 py-3 mb-6">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-medium">Readwise connected</span>
+                <span className="text-xs text-muted-foreground">· {rwDocs.length} items loaded</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Location filter */}
+                <select
+                  value={rwLocation}
+                  onChange={(e) => {
+                    const loc = e.target.value as typeof rwLocation;
+                    setRwLocation(loc);
+                    setRwDocs([]);
+                    fetchReadwise(loc);
+                  }}
+                  className="bg-input border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+                >
+                  <option value="later">Queue (Later)</option>
+                  <option value="new">New / Inbox</option>
+                  <option value="shortlist">Shortlist</option>
+                  <option value="archive">Archive</option>
+                </select>
+                <button
+                  onClick={() => fetchReadwise()}
+                  disabled={rwLoading}
+                  className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${rwLoading ? "animate-spin" : ""}`} />
+                </button>
+                <button
+                  onClick={disconnectReadwise}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1"
+                >
+                  Disconnect
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Error */}
+          {rwError && rwConnected && (
+            <p className="text-sm text-destructive mb-4">{rwError}</p>
+          )}
+
+          {/* Loading */}
+          {rwLoading && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-44" />)}
+            </div>
+          )}
+
+          {/* Empty */}
+          {!rwLoading && rwConnected && rwDocs.length === 0 && !rwError && (
+            <div className="text-center py-16 text-muted-foreground">
+              <BookMarked className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="font-medium mb-1">No items in this list</p>
+              <p className="text-sm">Try switching the queue filter above, or save articles in Readwise Reader</p>
+            </div>
+          )}
+
+          {/* Documents grid */}
+          {!rwLoading && rwDocs.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {rwDocs.map((doc) => {
+                const categoryColor: Record<string, string> = {
+                  article: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+                  pdf: "bg-red-500/15 text-red-400 border-red-500/20",
+                  epub: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+                  book: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+                  email: "bg-green-500/15 text-green-400 border-green-500/20",
+                  rss: "bg-orange-500/15 text-orange-400 border-orange-500/20",
+                  tweet: "bg-sky-500/15 text-sky-400 border-sky-500/20",
+                  video: "bg-rose-500/15 text-rose-400 border-rose-500/20",
+                };
+                const catStyle = categoryColor[doc.category] ?? "bg-muted text-muted-foreground border-border";
+                const progressPct = Math.round(doc.reading_progress * 100);
+
+                return (
+                  <div key={doc.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col hover:border-primary/40 transition-all">
+                    {/* Cover image */}
+                    {doc.image_url && (
+                      <div
+                        className="w-full h-24 rounded-xl bg-muted mb-3 bg-cover bg-center"
+                        style={{ backgroundImage: `url(${doc.image_url})` }}
+                      />
+                    )}
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${catStyle}`}>
+                        {doc.category}
+                      </span>
+                      {progressPct > 0 && (
+                        <span className="text-xs text-primary/70">{progressPct}% read</span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-sm leading-snug mb-1 flex-1 line-clamp-2">
+                      {doc.title || "Untitled"}
+                    </h3>
+                    {doc.author && (
+                      <p className="text-xs text-muted-foreground mb-1">{doc.author}</p>
+                    )}
+                    {doc.site_name && (
+                      <p className="text-xs text-muted-foreground mb-2 opacity-60">{doc.site_name}</p>
+                    )}
+                    {doc.summary && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{doc.summary}</p>
+                    )}
+
+                    {/* Progress bar */}
+                    {progressPct > 0 && (
+                      <div className="w-full bg-muted rounded-full h-0.5 mb-3">
+                        <div
+                          className="bg-primary h-0.5 rounded-full"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 mt-auto">
+                      {doc.url && (
+                        <button
+                          onClick={() => openReadwiseDoc(doc)}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-primary/15 border border-primary/30 text-primary text-xs font-medium py-2 rounded-lg hover:bg-primary/25 transition-colors"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" /> Read in ReadForge
+                        </button>
+                      )}
+                      {doc.url && (
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <p className="text-xs text-muted-foreground mt-4 text-center">
+            Readwise Reader sync · articles open in Cambridge Mode with full text extraction + RSVP
           </p>
         </div>
       )}
