@@ -7,6 +7,12 @@ import {
   Loader2, Maximize2, X, Target,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { Article } from "@/types";
+import { levelLabel, levelBadgeColor } from "@/lib/utils";
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/&[a-z]+;/gi, " ").replace(/\s+/g, " ").trim();
+}
 
 interface Props {
   userId: string | null;
@@ -203,9 +209,15 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
   // Track current WPM locally so levelUp persists within session
   const [localCurrentWpm, setLocalCurrentWpm] = useState(currentWpm);
 
+  // text source: "sample" | "library" | "custom"
+  const [textSource, setTextSource] = useState<"sample" | "library" | "custom">("sample");
   const [selectedText, setSelectedText] = useState(0);
   const [customText, setCustomText] = useState("");
-  const [useCustom, setUseCustom] = useState(false);
+
+  // Library articles
+  const [libraryArticles, setLibraryArticles] = useState<Article[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [selectedLibraryIdx, setSelectedLibraryIdx] = useState(0);
 
   const startWpm = Math.round(localCurrentWpm / 25) * 25;
   const [wpm, setWpm] = useState(startWpm);
@@ -226,8 +238,31 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const activeText = useCustom ? customText : SAMPLE_TEXTS[selectedText].text;
-  const activeQuiz = useCustom ? null : SAMPLE_TEXTS[selectedText].quiz;
+  // Fetch live library articles once on mount
+  useEffect(() => {
+    setLibraryLoading(true);
+    fetch("/api/articles?limit=20")
+      .then((r) => r.json())
+      .then((data: Article[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          // Shuffle so order is random each visit
+          const shuffled = [...data].sort(() => Math.random() - 0.5);
+          setLibraryArticles(shuffled);
+          // Pick random start index
+          setSelectedLibraryIdx(0);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLibraryLoading(false));
+  }, []);
+
+  const activeText =
+    textSource === "custom" ? customText
+    : textSource === "library"
+      ? stripHtml(libraryArticles[selectedLibraryIdx]?.content ?? libraryArticles[selectedLibraryIdx]?.excerpt ?? "")
+      : SAMPLE_TEXTS[selectedText].text;
+
+  const activeQuiz = textSource === "sample" ? SAMPLE_TEXTS[selectedText].quiz : null;
   const words = activeText.trim().split(/\s+/).filter(Boolean);
   const currentWord = words[wordIndex] ?? "";
   const pivotIndex = getPivotIndex(currentWord);
@@ -390,7 +425,11 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
               <span className="font-bold text-yellow-400">{wpm} WPM</span>
               <span className="text-xs text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground">
-                {useCustom ? "Custom Text" : SAMPLE_TEXTS[selectedText].title}
+                {textSource === "sample"
+                  ? SAMPLE_TEXTS[selectedText].title
+                  : textSource === "library"
+                  ? (libraryArticles[selectedLibraryIdx]?.title ?? "Live Article")
+                  : "Custom Text"}
               </span>
             </div>
             <button
@@ -464,34 +503,109 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
 
         {/* Text Selection */}
         <div className="bg-card border border-border rounded-2xl p-6 mb-6">
-          <h2 className="font-semibold mb-4">Choose Your Text</h2>
-          <div className="flex gap-2 flex-wrap mb-4">
-            {SAMPLE_TEXTS.map((t, i) => (
-              <button
-                key={i}
-                onClick={() => { setSelectedText(i); setUseCustom(false); reset(); }}
-                className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
-                  !useCustom && selectedText === i
-                    ? "bg-primary/15 border-primary/40 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/30"
-                }`}
-              >
-                <span className="font-medium">{t.title}</span>
-                <span className="ml-1 opacity-60">· {t.level}</span>
-              </button>
-            ))}
-            <button
-              onClick={() => setUseCustom(true)}
-              className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
-                useCustom
-                  ? "bg-primary/15 border-primary/40 text-primary"
-                  : "border-border text-muted-foreground hover:border-primary/30"
-              }`}
-            >
-              + Custom Text
-            </button>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">Choose Your Text</h2>
+            {/* Source tabs */}
+            <div className="flex gap-1 text-xs">
+              {(["sample", "library", "custom"] as const).map((src) => (
+                <button
+                  key={src}
+                  onClick={() => { setTextSource(src); reset(); }}
+                  className={`px-3 py-1.5 rounded-lg border transition-colors capitalize ${
+                    textSource === src
+                      ? "bg-primary/15 border-primary/40 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/30"
+                  }`}
+                >
+                  {src === "sample" ? "📝 Curated" : src === "library" ? "📰 Live Articles" : "✏️ Custom"}
+                </button>
+              ))}
+            </div>
           </div>
-          {useCustom && (
+
+          {/* SAMPLE TEXTS — with quiz */}
+          {textSource === "sample" && (
+            <>
+              <div className="flex gap-2 flex-wrap mb-3">
+                {SAMPLE_TEXTS.map((t, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setSelectedText(i); reset(); }}
+                    className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
+                      selectedText === i
+                        ? "bg-primary/15 border-primary/40 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    <span className="font-medium">{t.title}</span>
+                    <span className="ml-1 opacity-60">· {t.level}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                {SAMPLE_TEXTS[selectedText].text.slice(0, 140)}...
+              </p>
+              <p className="text-xs text-primary/60">✓ Comprehension quiz included — required to level up</p>
+            </>
+          )}
+
+          {/* LIBRARY ARTICLES — fresh from RSS */}
+          {textSource === "library" && (
+            <>
+              {libraryLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading live articles...
+                </div>
+              ) : libraryArticles.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">No articles loaded. Check connection.</p>
+              ) : (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-2 mb-3 max-h-64 overflow-y-auto pr-1">
+                    {libraryArticles.map((article, i) => (
+                      <button
+                        key={article.id}
+                        onClick={() => { setSelectedLibraryIdx(i); reset(); }}
+                        className={`text-left text-xs px-3 py-2.5 rounded-lg border transition-colors ${
+                          selectedLibraryIdx === i
+                            ? "bg-primary/15 border-primary/40"
+                            : "border-border hover:border-primary/30"
+                        }`}
+                      >
+                        <p className={`font-medium line-clamp-1 mb-1 ${selectedLibraryIdx === i ? "text-primary" : ""}`}>
+                          {article.title}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] ${levelBadgeColor(article.reading_level)}`}>
+                            {levelLabel(article.reading_level)}
+                          </span>
+                          <span className="text-muted-foreground truncate">{article.source}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {libraryArticles[selectedLibraryIdx]?.title ?? ""}
+                    </p>
+                    <button
+                      onClick={() => {
+                        const idx = Math.floor(Math.random() * libraryArticles.length);
+                        setSelectedLibraryIdx(idx);
+                        reset();
+                      }}
+                      className="text-xs text-primary/70 hover:text-primary transition-colors flex items-center gap-1"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Shuffle
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground/60 mt-1">No quiz for live articles · Use Curated for comprehension testing</p>
+                </>
+              )}
+            </>
+          )}
+
+          {/* CUSTOM */}
+          {textSource === "custom" && (
             <textarea
               value={customText}
               onChange={(e) => { setCustomText(e.target.value); reset(); }}
@@ -499,14 +613,9 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
               className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors h-32 resize-none"
             />
           )}
-          {!useCustom && (
-            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-              {SAMPLE_TEXTS[selectedText].text.slice(0, 120)}...
-            </p>
-          )}
-          <p className="text-xs text-muted-foreground mt-2">
-            {words.length} words · ~{Math.round(words.length / wpm)} min at {wpm} WPM
-            {!useCustom && <span className="ml-2 text-primary/60">· comprehension quiz included</span>}
+
+          <p className="text-xs text-muted-foreground mt-3">
+            {words.length} words · ~{Math.round(Math.max(1, words.length / wpm))} min at {wpm} WPM
           </p>
         </div>
 
