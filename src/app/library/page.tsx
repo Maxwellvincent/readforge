@@ -11,18 +11,20 @@ export default async function LibraryPage() {
   let bookmarks: Record<string, unknown>[] = [];
   let userId: string | null = null;
   let readwiseToken: string | null = null;
+  let goodreadsUserId: string | null = null;
 
   if (user) {
     userId = user.id;
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("interests, readwise_token")
+      .select("interests, readwise_token, goodreads_user_id")
       .eq("id", user.id)
       .single();
 
     interests = (profile?.interests as string[]) ?? [];
     readwiseToken = (profile?.readwise_token as string | null) ?? null;
+    goodreadsUserId = (profile?.goodreads_user_id as string | null) ?? null;
 
     const { data: bmarks } = await supabase
       .from("bookmarks")
@@ -39,6 +41,7 @@ export default async function LibraryPage() {
       initialInterests={interests}
       savedBookmarks={bookmarks}
       initialReadwiseToken={readwiseToken}
+      initialGoodreadsUserId={goodreadsUserId}
     />
   );
 }

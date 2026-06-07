@@ -18,6 +18,7 @@ interface Props {
   initialInterests: string[];
   savedBookmarks: Record<string, unknown>[];
   initialReadwiseToken?: string | null;
+  initialGoodreadsUserId?: string | null;
 }
 
 interface ReadwiseDoc {
@@ -107,7 +108,7 @@ function articleMatchesInterests(article: Article, interests: string[]): boolean
 
 type Tab = "foryou" | "all" | "saved" | "uploads" | "gutenberg" | "openlibrary" | "goodreads" | "readwise";
 
-export function LibraryClient({ userId, initialInterests, savedBookmarks, initialReadwiseToken }: Props) {
+export function LibraryClient({ userId, initialInterests, savedBookmarks, initialReadwiseToken, initialGoodreadsUserId }: Props) {
   const supabase = createClient();
   const [tab, setTab] = useState<Tab>(initialInterests.length > 0 ? "foryou" : "all");
   const [articles, setArticles] = useState<Article[]>([]);
@@ -141,8 +142,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
   const [gutenbergLoading, setGutenbergLoading] = useState(false);
   const [loadingBookId, setLoadingBookId] = useState<number | null>(null);
 
-  // Goodreads state
-  const [goodreadsUserId, setGoodreadsUserId] = useState("");
+  // Goodreads state (user ID comes from profile, set in Settings)
   const [goodreadsShelf, setGoodreadsShelf] = useState<"currently-reading" | "to-read" | "read">("currently-reading");
   const [goodreadsBooks, setGoodreadsBooks] = useState<GoodreadsBook[]>([]);
   const [goodreadsLoading, setGoodreadsLoading] = useState(false);
@@ -155,14 +155,12 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
   const [olLoadingId, setOlLoadingId] = useState<string | null>(null);
 
   // Readwise state
-  const [rwToken, setRwToken] = useState(initialReadwiseToken ?? "");
-  const [rwTokenInput, setRwTokenInput] = useState("");
+  const [rwToken] = useState(initialReadwiseToken ?? "");
   const [rwDocs, setRwDocs] = useState<ReadwiseDoc[]>([]);
   const [rwLoading, setRwLoading] = useState(false);
   const [rwError, setRwError] = useState("");
   const [rwLocation, setRwLocation] = useState<"later" | "shortlist" | "archive" | "new">("later");
-  const [rwSaving, setRwSaving] = useState(false);
-  const [rwConnected, setRwConnected] = useState(!!(initialReadwiseToken));
+  const rwConnected = !!rwToken;
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
@@ -198,6 +196,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
     if (tab === "gutenberg" && gutenbergBooks.length === 0) fetchGutenbergPopular();
     if (tab === "openlibrary" && olBooks.length === 0) fetchOLPopular();
     if (tab === "readwise" && rwConnected && rwDocs.length === 0) fetchReadwise();
+    if (tab === "goodreads" && initialGoodreadsUserId && goodreadsBooks.length === 0) fetchGoodreads();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -253,12 +252,13 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
     finally { setLoadingBookId(null); }
   }
 
-  async function fetchGoodreads() {
-    if (!goodreadsUserId.trim()) return;
+  async function fetchGoodreads(shelfOverride?: string) {
+    if (!initialGoodreadsUserId) return;
     setGoodreadsLoading(true);
     setGoodreadsError("");
     try {
-      const res = await fetch(`/api/goodreads?userId=${goodreadsUserId.trim()}&shelf=${goodreadsShelf}`);
+      const shelf = shelfOverride ?? goodreadsShelf;
+      const res = await fetch(`/api/goodreads?userId=${initialGoodreadsUserId}&shelf=${shelf}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setGoodreadsBooks(data.books ?? []);
@@ -339,38 +339,6 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
     } finally {
       setRwLoading(false);
     }
-  }
-
-  async function connectReadwise() {
-    if (!rwTokenInput.trim()) return;
-    setRwSaving(true);
-    setRwError("");
-    // Validate token first
-    const testRes = await fetch(`/api/readwise?token=${encodeURIComponent(rwTokenInput.trim())}&location=later`);
-    const testData = await testRes.json();
-    if (testData.error) {
-      setRwError(testData.error);
-      setRwSaving(false);
-      return;
-    }
-    // Save to profile
-    if (userId) {
-      await supabase.from("profiles").update({ readwise_token: rwTokenInput.trim() }).eq("id", userId);
-    }
-    setRwToken(rwTokenInput.trim());
-    setRwTokenInput("");
-    setRwConnected(true);
-    setRwDocs(testData.results ?? []);
-    setRwSaving(false);
-  }
-
-  async function disconnectReadwise() {
-    if (userId) {
-      await supabase.from("profiles").update({ readwise_token: null }).eq("id", userId);
-    }
-    setRwToken("");
-    setRwConnected(false);
-    setRwDocs([]);
   }
 
   function openReadwiseDoc(doc: ReadwiseDoc) {
@@ -1045,40 +1013,18 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
       {/* READWISE */}
       {tab === "readwise" && (
         <div>
-          {/* Connect panel */}
+          {/* Not connected — direct to settings */}
           {!rwConnected ? (
-            <div className="bg-card border border-border rounded-2xl p-6 mb-6">
-              <div className="flex items-center gap-3 mb-3">
-                <BookMarked className="w-5 h-5 text-orange-400" />
-                <h2 className="font-semibold">Connect Readwise</h2>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                Sync your Readwise library — articles, books, PDFs, and highlights saved in Readwise Reader appear here for focused reading with Cambridge Mode + RSVP.
-              </p>
-              <ol className="text-xs text-muted-foreground space-y-1.5 mb-5">
-                <li>1. Go to <a href="https://readwise.io/access_token" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">readwise.io/access_token</a></li>
-                <li>2. Copy your access token</li>
-                <li>3. Paste it below</li>
-              </ol>
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  value={rwTokenInput}
-                  onChange={(e) => setRwTokenInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") connectReadwise(); }}
-                  placeholder="Paste Readwise access token..."
-                  className="flex-1 bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors font-mono"
-                />
-                <button
-                  onClick={connectReadwise}
-                  disabled={rwSaving || !rwTokenInput.trim()}
-                  className="bg-orange-500/15 border border-orange-500/30 text-orange-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-500/25 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {rwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookMarked className="w-4 h-4" />}
-                  Connect
-                </button>
-              </div>
-              {rwError && <p className="text-sm text-destructive mt-3">{rwError}</p>}
+            <div className="text-center py-20 text-muted-foreground">
+              <BookMarked className="w-12 h-12 mx-auto mb-4 opacity-20" />
+              <p className="font-semibold mb-2">Readwise not connected</p>
+              <p className="text-sm mb-5">Add your Readwise access token in Profile Settings to sync your library here.</p>
+              <a
+                href="/profile"
+                className="inline-flex items-center gap-2 bg-orange-500/15 border border-orange-500/30 text-orange-400 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-orange-500/25 transition-colors"
+              >
+                <BookMarked className="w-4 h-4" /> Go to Settings
+              </a>
             </div>
           ) : (
             /* Connected header */
@@ -1112,12 +1058,12 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${rwLoading ? "animate-spin" : ""}`} />
                 </button>
-                <button
-                  onClick={disconnectReadwise}
-                  className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1"
+                <a
+                  href="/profile"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
                 >
-                  Disconnect
-                </button>
+                  Manage →
+                </a>
               </div>
             </div>
           )}
@@ -1235,89 +1181,101 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
       {/* GOODREADS */}
       {tab === "goodreads" && (
         <div>
-          <div className="bg-card border border-border rounded-2xl p-5 mb-6">
-            <h2 className="font-semibold mb-1">Connect Goodreads Shelf</h2>
-            <p className="text-xs text-muted-foreground mb-4">
-              Goodreads profile must be <strong>public</strong>. Find your User ID in your profile URL:
-              goodreads.com/user/show/<strong>12345678</strong>
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              <input
-                type="text"
-                value={goodreadsUserId}
-                onChange={(e) => setGoodreadsUserId(e.target.value)}
-                placeholder="Goodreads User ID (e.g. 12345678)"
-                className="flex-1 min-w-[200px] bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
-              />
-              <select
-                value={goodreadsShelf}
-                onChange={(e) => setGoodreadsShelf(e.target.value as "currently-reading" | "to-read" | "read")}
-                className="bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary"
+          {!initialGoodreadsUserId ? (
+            /* Not connected — direct to settings */
+            <div className="text-center py-20 text-muted-foreground">
+              <Star className="w-12 h-12 mx-auto mb-4 opacity-20" />
+              <p className="font-semibold mb-2">Goodreads not connected</p>
+              <p className="text-sm mb-5">Add your Goodreads User ID in Profile Settings to sync your shelves here.</p>
+              <a
+                href="/profile"
+                className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 text-amber-400 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-amber-500/25 transition-colors"
               >
-                <option value="currently-reading">Currently Reading</option>
-                <option value="to-read">Want to Read</option>
-                <option value="read">Read</option>
-              </select>
-              <button
-                onClick={fetchGoodreads}
-                disabled={goodreadsLoading || !goodreadsUserId.trim()}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {goodreadsLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
-                Fetch Shelf
-              </button>
-            </div>
-            {goodreadsError && (
-              <p className="text-sm text-destructive mt-3">{goodreadsError}</p>
-            )}
-          </div>
-
-          {goodreadsBooks.length === 0 && !goodreadsLoading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Star className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="font-medium mb-1">No shelf loaded yet</p>
-              <p className="text-sm">Enter your Goodreads User ID above to import your shelf</p>
-            </div>
-          ) : goodreadsLoading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-44" />)}
+                <Star className="w-4 h-4" /> Go to Settings
+              </a>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {goodreadsBooks.map((book) => (
-                <a
-                  key={book.id}
-                  href={book.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex gap-4"
-                >
-                  {book.cover && (
-                    <img src={book.cover} alt={book.title} className="w-16 h-24 object-cover rounded-lg shrink-0" />
-                  )}
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0">
-                        Goodreads
-                      </span>
-                      {book.rating && (
-                        <span className="text-xs text-yellow-400">{"★".repeat(Number(book.rating))}</span>
+            <>
+              {/* Shelf filter + refresh */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-medium">Goodreads · User {initialGoodreadsUserId}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={goodreadsShelf}
+                    onChange={(e) => {
+                      const shelf = e.target.value as typeof goodreadsShelf;
+                      setGoodreadsShelf(shelf);
+                      setGoodreadsBooks([]);
+                      fetchGoodreads(shelf);
+                    }}
+                    className="bg-input border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+                  >
+                    <option value="currently-reading">Currently Reading</option>
+                    <option value="to-read">Want to Read</option>
+                    <option value="read">Read</option>
+                  </select>
+                  <button
+                    onClick={() => fetchGoodreads()}
+                    disabled={goodreadsLoading}
+                    className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${goodreadsLoading ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
+              </div>
+
+              {goodreadsError && <p className="text-sm text-destructive mb-4">{goodreadsError}</p>}
+
+              {goodreadsLoading ? (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1,2,3].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-44" />)}
+                </div>
+              ) : goodreadsBooks.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Star className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No books on this shelf yet</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {goodreadsBooks.map((book) => (
+                    <a
+                      key={book.id}
+                      href={book.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex gap-4"
+                    >
+                      {book.cover && (
+                        <img src={book.cover} alt={book.title} className="w-16 h-24 object-cover rounded-lg shrink-0" />
                       )}
-                    </div>
-                    <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2 group-hover:text-primary transition-colors">
-                      {book.title}
-                    </h3>
-                    {book.author && <p className="text-xs text-muted-foreground mb-2">{book.author}</p>}
-                    <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{book.description}</p>
-                    <p className="text-xs text-primary mt-2">Open on Goodreads →</p>
-                  </div>
-                </a>
-              ))}
-            </div>
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0">
+                            Goodreads
+                          </span>
+                          {book.rating && (
+                            <span className="text-xs text-yellow-400">{"★".repeat(Number(book.rating))}</span>
+                          )}
+                        </div>
+                        <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+                          {book.title}
+                        </h3>
+                        {book.author && <p className="text-xs text-muted-foreground mb-2">{book.author}</p>}
+                        <p className="text-xs text-muted-foreground line-clamp-2 flex-1">{book.description}</p>
+                        <p className="text-xs text-primary mt-2">Open on Goodreads →</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-4 text-center">
+                Goodreads shelf · upload books via My Uploads to read with Cambridge Mode + RSVP
+              </p>
+            </>
           )}
-          <p className="text-xs text-muted-foreground mt-4 text-center">
-            Goodreads shows your reading list · upload the book via My Uploads to read it with Cambridge Mode
-          </p>
         </div>
       )}
 
