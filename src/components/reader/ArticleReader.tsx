@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { Article, KeyClauseAnalysis, CARSQuestion } from "@/types";
+import { RSVPModal } from "./RSVPModal";
 import { detectRhetoricalCues, isKeySentence } from "@/lib/cambridge/rhetorical-cues";
 import {
   analyzeKeyClause,
@@ -53,6 +54,9 @@ export function ArticleReader({ article }: Props) {
   const [loadingQuiz, setLoadingQuiz] = useState(false);
   const [expandedCue, setExpandedCue] = useState<string | null>(null);
   const startTime = useRef(Date.now());
+
+  // RSVP mode
+  const [rsvpOpen, setRsvpOpen] = useState(false);
 
   // Full article fetching
   const [fullText, setFullText] = useState<string | null>(null);
@@ -181,6 +185,15 @@ export function ArticleReader({ article }: Props) {
 
   return (
     <div className="min-h-screen">
+      {/* RSVP overlay */}
+      {rsvpOpen && (
+        <RSVPModal
+          text={displayContent}
+          title={article.title}
+          onClose={() => setRsvpOpen(false)}
+        />
+      )}
+
       {/* Top bar */}
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center gap-4">
@@ -209,6 +222,14 @@ export function ArticleReader({ article }: Props) {
               <EyeOff className="w-3.5 h-3.5" />
             )}
             Cambridge Mode
+          </button>
+          <button
+            onClick={() => setRsvpOpen(true)}
+            disabled={displayContent.split(/\s+/).length < 10}
+            className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 transition-colors disabled:opacity-40"
+          >
+            <Zap className="w-3.5 h-3.5" />
+            RSVP
           </button>
           <button
             onClick={generateQuiz}
