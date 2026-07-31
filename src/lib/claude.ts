@@ -4,9 +4,12 @@ import { detectRhetoricalCues, isKeySentence } from "./cambridge/rhetorical-cues
 import { splitIntoParagraphs, splitIntoSentences, getTopicSentence, getConclusionSentence } from "./cambridge/key-clause";
 import { calculateFleschScore, fleschToLevel } from "./utils";
 
+// The SDK reads ANTHROPIC_BASE_URL from env on its own, so pointing this at an
+// Anthropic-wire-compatible endpoint (e.g. https://api.moonshot.ai/anthropic) is
+// purely an env change — ANTHROPIC_BASE_URL + ANTHROPIC_MODEL, no code edit.
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const MODEL = "claude-sonnet-4-6";
+const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
 export async function analyzePassage(text: string): Promise<PassageAnalysis> {
   const paragraphs = splitIntoParagraphs(text);
