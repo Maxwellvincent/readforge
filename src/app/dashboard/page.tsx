@@ -1,43 +1,33 @@
-import { createClient } from "@/lib/supabase/server";
-import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { redirect } from "next/navigation";
+import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { getSessionUser } from "@/lib/firebase/session";
+import {
+  getProfile,
+  listCarsSessions,
+  listGrammarProgress,
+  listWpmTests,
+} from "@/lib/db/server";
+
+export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const [profileResult, wpmResult, carsResult, grammarResult] =
-    await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).single(),
-      supabase
-        .from("wpm_tests")
-        .select("wpm, comprehension_score, tested_at, mode")
-        .eq("user_id", user.id)
-        .order("tested_at", { ascending: true })
-        .limit(30),
-      supabase
-        .from("cars_sessions")
-        .select("score_percent, completed_at, total_questions, correct_answers")
-        .eq("user_id", user.id)
-        .order("completed_at", { ascending: false })
-        .limit(10),
-      supabase
-        .from("grammar_progress")
-        .select("module_id, completed, score")
-        .eq("user_id", user.id),
-    ]);
+  const [profile, wpmHistory, carsHistory, grammarProgress] = await Promise.all([
+    getProfile(user.uid),
+    listWpmTests(user.uid, 30),
+    listCarsSessions(user.uid, 10),
+    listGrammarProgress(user.uid),
+  ]);
 
   return (
     <DashboardClient
-      profile={profileResult.data}
-      wpmHistory={wpmResult.data ?? []}
-      carsHistory={carsResult.data ?? []}
-      grammarProgress={grammarResult.data ?? []}
-      userName={user.user_metadata?.full_name ?? user.email ?? ""}
+      profile={profile}
+      wpmHistory={wpmHistory}
+      carsHistory={carsHistory}
+      grammarProgress={grammarProgress}
+      userName={profile?.fullName ?? user.name ?? user.email ?? ""}
     />
   );
 }

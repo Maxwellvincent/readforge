@@ -1,3 +1,14 @@
+-- HISTORICAL REFERENCE ONLY — NOT THE LIVE SCHEMA.
+--
+-- ReadForge migrated from Supabase/Postgres to Firebase Auth + Firestore on
+-- 2026-08-14. This file is the last Supabase migration and is kept only to
+-- document what the Postgres schema looked like. It was already stale when the
+-- migration happened: the live database also had `bookmarks`, `user_documents`,
+-- and `profiles.interests / readwise_token / goodreads_user_id`, none of which
+-- appear below.
+--
+-- The live data model is documented in README.md and enforced by firestore.rules.
+
 -- ReadForge Database Schema
 
 -- Profiles (extends auth.users)

@@ -6,7 +6,7 @@ import {
   Zap, BookOpen, CheckCircle, TrendingUp, ArrowUp,
   Loader2, Maximize2, X, Target,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { addWpmTest, updateProfile } from "@/lib/db/client";
 import type { Article } from "@/types";
 import { levelLabel, levelBadgeColor } from "@/lib/utils";
 
@@ -204,7 +204,6 @@ function getPivotIndex(word: string): number {
 }
 
 export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
-  const supabase = createClient();
 
   // Track current WPM locally so levelUp persists within session
   const [localCurrentWpm, setLocalCurrentWpm] = useState(currentWpm);
@@ -301,11 +300,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
   async function saveSession() {
     if (!userId) return;
     setSaving(true);
-    await supabase.from("wpm_tests").insert({
-      user_id: userId,
-      wpm,
-      mode: "rsvp",
-    });
+    await addWpmTest(userId, { wpm, mode: "rsvp", comprehensionScore });
     setSaving(false);
     setSaved(true);
   }
@@ -333,9 +328,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
     const next = nextTarget(wpm);
     // Save new WPM to profile
     if (userId) {
-      await supabase.from("profiles")
-        .update({ current_wpm: next })
-        .eq("id", userId);
+      await updateProfile(userId, { currentWpm: next });
     }
     setLocalCurrentWpm(next);
     setWpm(next);

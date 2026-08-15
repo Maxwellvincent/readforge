@@ -1,11 +1,16 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BookOpen, Eye, EyeOff, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import {
+  completeRedirectSignIn,
+  sendReset,
+  signInWithEmail,
+  signInWithProvider,
+} from "@/lib/firebase/auth-actions";
 
 function GoogleIcon() {
   return (
@@ -28,44 +33,75 @@ function AppleIcon() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
+  const [notice, setNotice] = useState("");
 
-  // Show real error from OAuth callback redirect
+  // Show real error from an OAuth redirect that bounced back with one
   const searchParams = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search)
     : new URLSearchParams();
   const [error, setError] = useState(decodeURIComponent(searchParams.get("error") ?? ""));
 
+  // Finish a redirect-based OAuth sign-in (popup-blocked / mobile Safari path)
+  useEffect(() => {
+    completeRedirectSignIn()
+      .then((done) => {
+        if (done) {
+          router.push("/dashboard");
+          router.refresh();
+        }
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Sign-in failed");
+      });
+  }, [router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+    try {
+      await signInWithEmail(email, password);
       router.push("/dashboard");
       router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-in failed");
+      setLoading(false);
+    }
+  }
+
+  async function handleReset() {
+    if (!email) {
+      setError("Enter your email first, then tap reset.");
+      return;
+    }
+    setError("");
+    try {
+      await sendReset(email);
+      setNotice(`Password reset link sent to ${email}.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send reset email");
     }
   }
 
   async function handleOAuth(provider: "google" | "apple") {
     setOauthLoading(provider);
     setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) {
-      setError(error.message);
+    try {
+      const done = await signInWithProvider(provider);
+      if (done) {
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
+      // Redirect flow took over, or the user closed the popup.
+      setOauthLoading(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-in failed");
       setOauthLoading(null);
     }
   }
@@ -87,6 +123,12 @@ export default function LoginPage() {
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm rounded-lg px-4 py-3 mb-4">
               {error}
+            </div>
+          )}
+
+          {notice && (
+            <div className="bg-primary/10 border border-primary/20 text-primary text-sm rounded-lg px-4 py-3 mb-4">
+              {notice}
             </div>
           )}
 
@@ -137,7 +179,16 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm font-medium">Password</label>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/firebase/session";
 import { generateCARSQuestions } from "@/lib/claude";
 
 const CARS_PASSAGES = [
@@ -32,6 +33,9 @@ Against this stands the objection that the moral effects of literature are empir
 ];
 
 export async function GET(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const passageId = searchParams.get("passage") ?? "p1";
   const passage = CARS_PASSAGES.find((p) => p.id === passageId) ?? CARS_PASSAGES[0];
@@ -39,6 +43,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const { passage, count = 6 } = await request.json();
     const questions = await generateCARSQuestions(passage, count);

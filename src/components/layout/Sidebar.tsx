@@ -12,7 +12,7 @@ import {
   User,
   LogOut,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { signOut as firebaseSignOut } from "@/lib/firebase/auth-actions";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -27,10 +27,9 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
 
   async function signOut() {
-    await supabase.auth.signOut();
+    await firebaseSignOut();
     router.push("/");
     router.refresh();
   }

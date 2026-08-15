@@ -1,11 +1,15 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BookOpen, Eye, EyeOff, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import {
+  completeRedirectSignIn,
+  signInWithProvider,
+  signUpWithEmail,
+} from "@/lib/firebase/auth-actions";
 
 function GoogleIcon() {
   return (
@@ -28,7 +32,6 @@ function AppleIcon() {
 
 export default function SignupPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,35 +41,47 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // Finish a redirect-based OAuth sign-up (popup-blocked / mobile Safari path)
+  useEffect(() => {
+    completeRedirectSignIn()
+      .then((done) => {
+        if (done) {
+          router.push("/onboarding");
+          router.refresh();
+        }
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Sign-up failed");
+      });
+  }, [router]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } },
-    });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+    try {
+      await signUpWithEmail(name, email, password);
       setSuccess(true);
       setTimeout(() => router.push("/onboarding"), 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-up failed");
+      setLoading(false);
     }
   }
 
   async function handleOAuth(provider: "google" | "apple") {
     setOauthLoading(provider);
     setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    if (error) {
-      setError(error.message);
+    try {
+      const done = await signInWithProvider(provider);
+      if (done) {
+        router.push("/onboarding");
+        router.refresh();
+        return;
+      }
+      setOauthLoading(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-up failed");
       setOauthLoading(null);
     }
   }

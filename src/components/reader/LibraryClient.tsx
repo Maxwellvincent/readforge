@@ -11,13 +11,20 @@ import type { Article, ReadingLevel } from "@/types";
 import { levelLabel, levelBadgeColor, estimateReadTime, countWords, calculateFleschScore, fleschToLevel } from "@/lib/utils";
 import { format } from "date-fns";
 import { RSS_FEEDS } from "@/lib/rss";
-import { createClient } from "@/lib/supabase/client";
+import {
+  addReadingSession,
+  fetchDocuments,
+  removeBookmark,
+  saveBookmark,
+  updateProfile,
+} from "@/lib/db/client";
+import type { Bookmark as SavedBookmark } from "@/lib/db/types";
 
 interface Props {
   userId: string | null;
   initialInterests: string[];
-  savedBookmarks: Record<string, unknown>[];
-  initialReadwiseToken?: string | null;
+  savedBookmarks: SavedBookmark[];
+  readwiseConnected?: boolean;
   initialGoodreadsUserId?: string | null;
 }
 
@@ -108,8 +115,7 @@ function articleMatchesInterests(article: Article, interests: string[]): boolean
 
 type Tab = "foryou" | "all" | "saved" | "uploads" | "gutenberg" | "openlibrary" | "goodreads" | "readwise";
 
-export function LibraryClient({ userId, initialInterests, savedBookmarks, initialReadwiseToken, initialGoodreadsUserId }: Props) {
-  const supabase = createClient();
+export function LibraryClient({ userId, initialInterests, savedBookmarks, readwiseConnected, initialGoodreadsUserId }: Props) {
   const [tab, setTab] = useState<Tab>(initialInterests.length > 0 ? "foryou" : "all");
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,10 +125,10 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
   const [interests, setInterests] = useState<string[]>(initialInterests);
   const [showInterestPicker, setShowInterestPicker] = useState(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
-    new Set(savedBookmarks.map((b) => b.article_id as string))
+    new Set(savedBookmarks.map((b) => b.articleId))
   );
   const [bookmarkData, setBookmarkData] = useState<Article[]>(
-    savedBookmarks.map((b) => b.article_data as unknown as Article)
+    savedBookmarks.map((b) => b.articleData as unknown as Article)
   );
 
   // Upload state
@@ -155,12 +161,12 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
   const [olLoadingId, setOlLoadingId] = useState<string | null>(null);
 
   // Readwise state
-  const [rwToken] = useState(initialReadwiseToken ?? "");
+  // The Readwise token stays server-side; the client only knows connected-or-not.
   const [rwDocs, setRwDocs] = useState<ReadwiseDoc[]>([]);
   const [rwLoading, setRwLoading] = useState(false);
   const [rwError, setRwError] = useState("");
   const [rwLocation, setRwLocation] = useState<"later" | "shortlist" | "archive" | "new">("later");
-  const rwConnected = !!rwToken;
+  const rwConnected = Boolean(readwiseConnected);
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
@@ -181,14 +187,10 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
   const fetchUserDocs = useCallback(async () => {
     if (!userId) return;
     setDocsLoading(true);
-    const { data } = await supabase
-      .from("user_documents")
-      .select("*")
-      .eq("user_id", userId)
-      .order("uploaded_at", { ascending: false });
-    setUserDocs(data ?? []);
+    const docs = await fetchDocuments(userId);
+    setUserDocs(docs as unknown as Record<string, unknown>[]);
     setDocsLoading(false);
-  }, [userId, supabase]);
+  }, [userId]);
 
   useEffect(() => { fetchArticles(); }, [fetchArticles]);
   useEffect(() => { if (tab === "uploads") fetchUserDocs(); }, [tab, fetchUserDocs]);
@@ -323,13 +325,13 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
   }
 
   async function fetchReadwise(locationOverride?: string) {
-    const token = rwToken;
-    if (!token) return;
+    if (!rwConnected) return;
     setRwLoading(true);
     setRwError("");
     try {
       const loc = locationOverride ?? rwLocation;
-      const res = await fetch(`/api/readwise?token=${encodeURIComponent(token)}&location=${loc}`);
+      // No token in the URL — the route reads it from the private doc by session uid.
+      const res = await fetch(`/api/readwise?location=${loc}`);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setRwDocs(data.results ?? []);
@@ -368,22 +370,18 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
   async function saveInterests(updated: string[]) {
     setInterests(updated);
     if (!userId) return;
-    await supabase.from("profiles").update({ interests: updated }).eq("id", userId);
+    await updateProfile(userId, { interests: updated });
   }
 
   async function toggleBookmark(article: Article) {
     if (!userId) return;
     const isBookmarked = bookmarkedIds.has(article.id);
     if (isBookmarked) {
-      await supabase.from("bookmarks").delete().eq("user_id", userId).eq("article_id", article.id);
+      await removeBookmark(userId, article.id);
       setBookmarkedIds((prev) => { const n = new Set(prev); n.delete(article.id); return n; });
       setBookmarkData((prev) => prev.filter((a) => a.id !== article.id));
     } else {
-      await supabase.from("bookmarks").upsert({
-        user_id: userId,
-        article_id: article.id,
-        article_data: article as unknown as Record<string, unknown>,
-      });
+      await saveBookmark(userId, article.id, article as unknown as Record<string, unknown>);
       setBookmarkedIds((prev) => new Set([...prev, article.id]));
       setBookmarkData((prev) => [article, ...prev]);
     }
@@ -391,10 +389,12 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
 
   async function logView(articleId: string) {
     if (!userId) return;
-    await supabase.from("reading_sessions").insert({
-      user_id: userId,
-      article_id: articleId,
-    }).then(() => {});
+    await addReadingSession(userId, {
+      articleId,
+      wordsRead: 0,
+      mode: "analytical",
+      cambridgeModeOn: false,
+    });
   }
 
   async function handleUpload() {
@@ -687,15 +687,15 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, initia
                   content: d.content as string,
                   excerpt: (d.content as string).slice(0, 150) + "...",
                   author: (d.author as string) ?? "",
-                  published_at: d.uploaded_at as string,
+                  published_at: d.uploadedAt as string,
                   topic: [],
-                  reading_level: (d.reading_level as string) as import("@/types").ReadingLevel,
-                  flesch_score: d.flesch_score as number,
-                  word_count: d.word_count as number,
-                  estimated_wpm: d.word_count as number,
+                  reading_level: (d.readingLevel as string) as import("@/types").ReadingLevel,
+                  flesch_score: d.fleschScore as number,
+                  word_count: d.wordCount as number,
+                  estimated_wpm: d.wordCount as number,
                   essay_type: "expository",
                   image_url: "",
-                  cached_at: d.uploaded_at as string,
+                  cached_at: d.uploadedAt as string,
                 };
                 return (
                   <Link

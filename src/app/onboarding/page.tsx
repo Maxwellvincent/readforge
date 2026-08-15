@@ -4,7 +4,8 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Timer, CheckCircle, ArrowRight, Loader2, Brain } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { getFirebaseAuth } from "@/lib/firebase/client";
+import { addWpmTest, updateProfile } from "@/lib/db/client";
 import { countWords } from "@/lib/utils";
 
 const PASSAGE = {
@@ -90,7 +91,6 @@ type Phase = "intro" | "reading" | "questions" | "results";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [phase, setPhase] = useState<Phase>("intro");
   const [startTime, setStartTime] = useState<number>(0);
   const [elapsed, setElapsed] = useState(0);
@@ -131,19 +131,18 @@ export default function OnboardingPage() {
     const level = wpmToLevel(wpm);
 
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = getFirebaseAuth().currentUser;
     if (user) {
-      await supabase.from("profiles").update({
-        baseline_wpm: wpm,
-        current_wpm: wpm,
-        reading_level: level,
-        onboarding_complete: true,
-      }).eq("id", user.id);
+      await updateProfile(user.uid, {
+        baselineWpm: wpm,
+        currentWpm: wpm,
+        readingLevel: level,
+        onboardingComplete: true,
+      });
 
-      await supabase.from("wpm_tests").insert({
-        user_id: user.id,
+      await addWpmTest(user.uid, {
         wpm,
-        comprehension_score: comprehension,
+        comprehensionScore: comprehension,
         mode: "normal",
       });
     }

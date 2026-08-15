@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/firebase/session";
 import Parser from "rss-parser";
 import { RSS_FEEDS, articleFromRSSItem } from "@/lib/rss";
 import type { Article } from "@/types";
@@ -16,6 +17,9 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const source = searchParams.get("source");
   const level = searchParams.get("level");

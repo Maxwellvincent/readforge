@@ -1,30 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { getSessionUser } from "@/lib/firebase/session";
+import { addDocument } from "@/lib/db/server";
 import { calculateFleschScore, fleschToLevel, countWords } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return cookieStore.getAll(); },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {}
-        },
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const formData = await request.formData();
@@ -51,7 +33,7 @@ export async function POST(request: NextRequest) {
         const pdfParse = require("pdf-parse");
         const pdfData = await pdfParse(buffer);
         content = pdfData.text.replace(/\s+/g, " ").trim();
-      } catch (err) {
+      } catch {
         return NextResponse.json(
           { error: "Failed to extract PDF text. Try pasting the text instead." },
           { status: 422 }
@@ -73,24 +55,19 @@ export async function POST(request: NextRequest) {
   const fleschScore = calculateFleschScore(content);
   const readingLevel = fleschToLevel(fleschScore);
 
-  const { data, error } = await supabase
-    .from("user_documents")
-    .insert({
-      user_id: user.id,
+  try {
+    const document = await addDocument(user.uid, {
       title,
       author: author || null,
       content,
-      word_count: wordCount,
-      file_type: fileType,
-      reading_level: readingLevel,
-      flesch_score: fleschScore,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+      wordCount,
+      fileType,
+      readingLevel,
+      fleschScore,
+    });
+    return NextResponse.json({ success: true, document });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to save document";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true, document: data });
 }

@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Audit fields are server-owned. The client data layer sends only
+    // updatedAt, and only ever as the server timestamp.
+    function auditOk() {
+      return (!('createdAt' in request.resource.data)
+              || request.resource.data.createdAt == request.time)
+          && (!('updatedAt' in request.resource.data)
+              || request.resource.data.updatedAt == request.time);
+    }
+
+    function profileValid() {
+      return request.resource.data.keys().hasOnly([
+               'email', 'fullName', 'avatarUrl', 'baselineWpm', 'currentWpm',
+               'readingLevel', 'streakDays', 'lastActive', 'totalWordsRead',
+               'articlesRead', 'onboardingComplete', 'interests',
+               'goodreadsUserId', 'createdAt', 'updatedAt'])
+          && (!('baselineWpm' in request.resource.data)
+              || request.resource.data.baselineWpm is int)
+          && (!('currentWpm' in request.resource.data)
+              || request.resource.data.currentWpm is int)
+          && (!('interests' in request.resource.data)
+              || request.resource.data.interests is list)
+          && auditOk();
+    }
+
+    function wpmValid() {
+      return request.resource.data.keys().hasOnly(
+               ['wpm', 'comprehensionScore', 'articleId', 'mode', 'testedAt'])
+          && request.resource.data.wpm is int
+          && request.resource.data.wpm > 0
+          && request.resource.data.wpm < 5000
+          && request.resource.data.mode in ['normal', 'rsvp', 'focus'];
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && profileValid();
+      allow delete: if false;
+
+      // Server-only: Readwise token. Admin SDK bypasses rules.
+      match /private/{doc} {
+        allow read, write: if false;
+      }
+
+      match /wpmTests/{id} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid) && wpmValid();
+        allow delete: if isOwner(uid);
+      }
+
+      // Owner-only, no field validation — see the accepted-risk note in PLAN.md.
+      match /readingSessions/{id} { allow read, write: if isOwner(uid); }
+      match /quizResponses/{id}   { allow read, write: if isOwner(uid); }
+      match /grammarProgress/{id} { allow read, write: if isOwner(uid); }
+      match /carsSessions/{id}    { allow read, write: if isOwner(uid); }
+      match /skillScores/{id}     { allow read, write: if isOwner(uid); }
+      match /bookmarks/{id}       { allow read, write: if isOwner(uid); }
+
+      // Uploads are written by /api/upload via the Admin SDK.
+      match /documents/{id} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // Public article cache, written server-side only.
+    match /articles/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

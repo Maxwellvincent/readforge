@@ -26,11 +26,13 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+import type { CarsSession, GrammarProgress, Profile, WpmTest } from "@/lib/db/types";
+
 interface Props {
-  profile: Record<string, unknown> | null;
-  wpmHistory: { wpm: number; comprehension_score: number; tested_at: string; mode: string }[];
-  carsHistory: { score_percent: number; completed_at: string }[];
-  grammarProgress: { module_id: string; completed: boolean; score: number }[];
+  profile: Profile | null;
+  wpmHistory: WpmTest[];
+  carsHistory: CarsSession[];
+  grammarProgress: GrammarProgress[];
   userName: string;
 }
 
@@ -89,24 +91,24 @@ export function DashboardClient({
   grammarProgress,
   userName,
 }: Props) {
-  const currentWpm = (profile?.current_wpm as number) ?? 200;
-  const baselineWpm = (profile?.baseline_wpm as number) ?? 200;
+  const currentWpm = profile?.currentWpm ?? 200;
+  const baselineWpm = profile?.baselineWpm ?? 200;
   const wpmGain = currentWpm - baselineWpm;
-  const articlesRead = (profile?.articles_read as number) ?? 0;
-  const streakDays = (profile?.streak_days as number) ?? 0;
+  const articlesRead = profile?.articlesRead ?? 0;
+  const streakDays = profile?.streakDays ?? 0;
   const avgCarsScore =
     carsHistory.length > 0
       ? Math.round(
-          carsHistory.reduce((s, c) => s + (c.score_percent ?? 0), 0) /
+          carsHistory.reduce((s, c) => s + (c.scorePercent ?? 0), 0) /
             carsHistory.length
         )
       : 0;
   const modulesCompleted = grammarProgress.filter((g) => g.completed).length;
 
   const wpmChartData = wpmHistory.map((w) => ({
-    date: format(new Date(w.tested_at), "MMM d"),
+    date: format(new Date(w.testedAt), "MMM d"),
     wpm: w.wpm,
-    comprehension: w.comprehension_score,
+    comprehension: w.comprehensionScore,
   }));
 
   const radarData = [
@@ -124,7 +126,7 @@ export function DashboardClient({
   const firstName = (userName.split(" ")[0] || userName).split("@")[0];
 
   // Personalized recommendation based on baseline
-  const lastComprehension = wpmHistory.length > 0 ? wpmHistory[0].comprehension_score : null;
+  const lastComprehension = wpmHistory.length > 0 ? wpmHistory[0].comprehensionScore : null;
   const focusRec = (() => {
     if (currentWpm < 200) return {
       label: "Priority: Build Reading Speed",
@@ -379,7 +381,7 @@ export function DashboardClient({
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
           {GRAMMAR_MODULES.map((mod, i) => {
             const prog = grammarProgress.filter(
-              (g) => g.module_id === `module-${i + 1}`
+              (g) => g.moduleId === `module-${i + 1}`
             );
             const done = prog.some((g) => g.completed);
             return (
@@ -418,19 +420,19 @@ export function DashboardClient({
                 <div className="flex items-center gap-3">
                   <Flame className="w-4 h-4 text-orange-400" />
                   <span className="text-sm">
-                    {s.completed_at
-                      ? format(new Date(s.completed_at), "MMM d, yyyy")
+                    {s.completedAt
+                      ? format(new Date(s.completedAt), "MMM d, yyyy")
                       : "In Progress"}
                   </span>
                 </div>
                 <span
                   className={`text-sm font-bold ${
-                    (s.score_percent ?? 0) >= 70
+                    (s.scorePercent ?? 0) >= 70
                       ? "text-emerald-400"
                       : "text-orange-400"
                   }`}
                 >
-                  {s.score_percent ?? 0}%
+                  {s.scorePercent ?? 0}%
                 </span>
               </div>
             ))}

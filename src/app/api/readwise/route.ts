@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/firebase/session";
+import { getReadwiseToken } from "@/lib/db/server";
 
 export const dynamic = "force-dynamic";
 
@@ -26,14 +28,18 @@ export interface ReadwiseDocument {
 }
 
 export async function GET(request: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
-  const token = searchParams.get("token");
+  // The token is never accepted from the client — it lives in a server-only doc.
+  const token = await getReadwiseToken(user.uid);
   const location = searchParams.get("location") ?? "later"; // new|later|shortlist|archive
   const category = searchParams.get("category"); // article|pdf|epub|book
   const cursor = searchParams.get("cursor");
 
   if (!token) {
-    return NextResponse.json({ error: "Missing Readwise token" }, { status: 400 });
+    return NextResponse.json({ error: "Readwise is not connected" }, { status: 400 });
   }
 
   const params = new URLSearchParams();

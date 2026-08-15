@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import Parser from "rss-parser";
+import { getSessionUser } from "@/lib/firebase/session";
 
 export const dynamic = "force-dynamic";
 
 const parser = new Parser();
 
 export async function GET(request: NextRequest) {
+  const user = await getSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get("userId");
   const shelf = searchParams.get("shelf") ?? "currently-reading";

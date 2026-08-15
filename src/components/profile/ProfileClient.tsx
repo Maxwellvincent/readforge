@@ -5,40 +5,40 @@ import {
   User, BookOpen, Zap, Target, Layers,
   CheckCircle, Loader2, BookMarked, Star, Link2, Unlink,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { updateProfile } from "@/lib/db/client";
+import type { Profile } from "@/lib/db/types";
 import { levelLabel } from "@/lib/utils";
 import type { ReadingLevel } from "@/types";
 
 interface Props {
-  profile: Record<string, unknown> | null;
+  profile: Profile | null;
   user: { email: string; id: string };
+  readwiseConnected: boolean;
 }
 
-export function ProfileClient({ profile, user }: Props) {
-  const supabase = createClient();
-
+export function ProfileClient({ profile, user, readwiseConnected }: Props) {
   // Profile fields
-  const [name, setName] = useState((profile?.full_name as string) ?? "");
+  const [name, setName] = useState(profile?.fullName ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Readwise
-  const [rwToken, setRwToken] = useState((profile?.readwise_token as string) ?? "");
+  // Readwise — the token itself never reaches the browser; we only track status.
+  const [rwConnected, setRwConnected] = useState(readwiseConnected);
   const [rwInput, setRwInput] = useState("");
   const [rwSaving, setRwSaving] = useState(false);
   const [rwError, setRwError] = useState("");
   const [rwSaved, setRwSaved] = useState(false);
 
   // Goodreads
-  const [grUserId, setGrUserId] = useState((profile?.goodreads_user_id as string) ?? "");
-  const [grInput, setGrInput] = useState((profile?.goodreads_user_id as string) ?? "");
+  const [grUserId, setGrUserId] = useState(profile?.goodreadsUserId ?? "");
+  const [grInput, setGrInput] = useState(profile?.goodreadsUserId ?? "");
   const [grSaving, setGrSaving] = useState(false);
   const [grSaved, setGrSaved] = useState(false);
   const [grError, setGrError] = useState("");
 
   async function saveProfile() {
     setSaving(true);
-    await supabase.from("profiles").update({ full_name: name }).eq("id", user.id);
+    await updateProfile(user.id, { fullName: name });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -48,16 +48,20 @@ export function ProfileClient({ profile, user }: Props) {
     if (!rwInput.trim()) return;
     setRwSaving(true);
     setRwError("");
-    // Validate token
-    const res = await fetch(`/api/readwise?token=${encodeURIComponent(rwInput.trim())}&location=later`);
+    // The server validates the token against Readwise and stores it in a
+    // server-only document — it is never held in client state.
+    const res = await fetch("/api/integrations/readwise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: rwInput.trim() }),
+    });
     const data = await res.json();
-    if (data.error) {
-      setRwError(data.error);
+    if (!res.ok || data.error) {
+      setRwError(data.error ?? "Could not connect Readwise");
       setRwSaving(false);
       return;
     }
-    await supabase.from("profiles").update({ readwise_token: rwInput.trim() }).eq("id", user.id);
-    setRwToken(rwInput.trim());
+    setRwConnected(true);
     setRwInput("");
     setRwSaved(true);
     setTimeout(() => setRwSaved(false), 2000);
@@ -65,8 +69,8 @@ export function ProfileClient({ profile, user }: Props) {
   }
 
   async function disconnectReadwise() {
-    await supabase.from("profiles").update({ readwise_token: null }).eq("id", user.id);
-    setRwToken("");
+    await fetch("/api/integrations/readwise", { method: "DELETE" });
+    setRwConnected(false);
     setRwInput("");
   }
 
@@ -82,7 +86,7 @@ export function ProfileClient({ profile, user }: Props) {
       setGrSaving(false);
       return;
     }
-    await supabase.from("profiles").update({ goodreads_user_id: grInput.trim() }).eq("id", user.id);
+    await updateProfile(user.id, { goodreadsUserId: grInput.trim() });
     setGrUserId(grInput.trim());
     setGrSaved(true);
     setTimeout(() => setGrSaved(false), 2000);
@@ -90,16 +94,16 @@ export function ProfileClient({ profile, user }: Props) {
   }
 
   async function disconnectGoodreads() {
-    await supabase.from("profiles").update({ goodreads_user_id: null }).eq("id", user.id);
+    await updateProfile(user.id, { goodreadsUserId: null });
     setGrUserId("");
     setGrInput("");
   }
 
   const stats = [
-    { label: "Current WPM", value: (profile?.current_wpm as number) ?? 200, icon: Zap, color: "text-yellow-400" },
-    { label: "Articles Read", value: (profile?.articles_read as number) ?? 0, icon: BookOpen, color: "text-indigo-400" },
+    { label: "Current WPM", value: profile?.currentWpm ?? 200, icon: Zap, color: "text-yellow-400" },
+    { label: "Articles Read", value: profile?.articlesRead ?? 0, icon: BookOpen, color: "text-indigo-400" },
     { label: "CARS Sessions", value: "—", icon: Target, color: "text-red-400" },
-    { label: "Reading Level", value: levelLabel((profile?.reading_level as ReadingLevel) ?? "college"), icon: Layers, color: "text-purple-400" },
+    { label: "Reading Level", value: levelLabel((profile?.readingLevel as ReadingLevel) ?? "college"), icon: Layers, color: "text-purple-400" },
   ];
 
   return (
@@ -180,7 +184,7 @@ export function ProfileClient({ profile, user }: Props) {
                 <p className="text-xs text-muted-foreground">Sync your Readwise Reader library</p>
               </div>
             </div>
-            {rwToken ? (
+            {rwConnected ? (
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1.5 text-xs text-emerald-400">
                   <CheckCircle className="w-3.5 h-3.5" /> Connected
@@ -196,7 +200,7 @@ export function ProfileClient({ profile, user }: Props) {
               <span className="text-xs text-muted-foreground px-2 py-1 bg-muted rounded-lg">Not connected</span>
             )}
           </div>
-          {!rwToken && (
+          {!rwConnected && (
             <div className="mt-3 space-y-2">
               <p className="text-xs text-muted-foreground">
                 Get your access token at{" "}
@@ -225,7 +229,7 @@ export function ProfileClient({ profile, user }: Props) {
               {rwError && <p className="text-xs text-destructive">{rwError}</p>}
             </div>
           )}
-          {rwToken && (
+          {rwConnected && (
             <p className="text-xs text-muted-foreground mt-2">
               Token saved · your Readwise library is available in the Library → Readwise tab
             </p>

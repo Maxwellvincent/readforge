@@ -1,6 +1,6 @@
 import type { Article, RSSFeed } from "@/types";
 import { calculateFleschScore, fleschToLevel, countWords } from "./utils";
-import { nanoid } from "nanoid";
+import { articleId } from "@/lib/db/ids";
 
 export const RSS_FEEDS: RSSFeed[] = [
   {
@@ -87,15 +87,21 @@ export function articleFromRSSItem(
   const fleschScore = content.length > 100 ? calculateFleschScore(content) : 50;
   const level = fleschToLevel(fleschScore);
 
+  const title = stripHtml(item.title || "Untitled");
+  const sourceUrl = item.link || item.guid || "";
+  const publishedAt = item.pubDate || item.isoDate || new Date().toISOString();
+
   return {
-    id: nanoid(),
-    title: stripHtml(item.title || "Untitled"),
+    // Deterministic: the same article keeps its ID across refetches, so the
+    // article cache and bookmark documents actually line up.
+    id: articleId({ sourceUrl, source: feed.name, title, publishedAt }),
+    title,
     source: feed.name,
-    source_url: item.link || item.guid || "",
+    source_url: sourceUrl,
     content: content || excerpt,
     excerpt,
     author: item.author || item.creator || undefined,
-    published_at: item.pubDate || item.isoDate || new Date().toISOString(),
+    published_at: publishedAt,
     topic: feed.defaultTopics,
     reading_level: level,
     flesch_score: fleschScore,
