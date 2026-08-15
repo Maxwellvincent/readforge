@@ -4,7 +4,7 @@
 > change to the stack, data model, API routes, screen inventory, or env vars
 > updates this file in the same commit as the code.
 >
-> Last verified against the tree: 2026-08-14
+> Last verified against the tree: 2026-08-15
 
 Reading-training app: RSVP speed drills, Cambridge-method article reading, MCAT
 CARS practice, and grammar modules, with a library that pulls from RSS,
@@ -19,7 +19,7 @@ uploads.
 | Styling | Tailwind CSS 4, shadcn-style primitives, Radix |
 | Auth | Firebase Auth (email/password, Google, Apple) + Admin-minted session cookies |
 | Database | Cloud Firestore (project `readforge-app`, `(default)` database, nam5) |
-| LLM | Anthropic SDK (`src/lib/claude.ts`) |
+| LLM | llm-bridge first, Anthropic SDK fallback (`src/lib/claude.ts`) |
 | Charts | Recharts |
 | Hosting | Vercel |
 
@@ -46,7 +46,9 @@ npm run dev
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | numeric sender id |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | web app id |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | **Secret.** Service-account JSON, raw or base64. Server-only |
-| `ANTHROPIC_API_KEY` | **Secret.** Claude calls for analysis and question generation |
+| `ANTHROPIC_API_KEY` | **Secret.** Claude fallback when llm-bridge is unreachable — required in production |
+| `LLM_BRIDGE_URL` | Optional, defaults to `http://127.0.0.1:4319` |
+| `LLM_BRIDGE` | Set to `off` to skip the bridge entirely |
 
 Regenerate the web config any time with:
 
@@ -133,6 +135,25 @@ unauthenticated.
 The UI only ever receives a `readwiseConnected` boolean. Goodreads is different
 on purpose — a Goodreads user ID is a public profile identifier, not a
 credential, so it stays on the profile document.
+
+## LLM calls
+
+`src/lib/claude.ts` routes every completion through one `complete()` helper that
+tries the local **llm-bridge** first and falls back to the Anthropic API.
+
+The bridge (`~/projects/llm-bridge`, loopback port 4319) proxies to the Claude
+Code / Codex / Gemini CLIs already covered by subscription, plus ollama offline —
+so local calls cost nothing. It is reachable only on a machine running it: on
+Vercel the probe fails in ~1.2s and the API path takes over, which is why
+`ANTHROPIC_API_KEY` still has to be set in production.
+
+The probe result is cached — 30s on success, 3s on failure — so a working bridge
+costs no extra round-trip per call, and a bridge that blips mid-generation is not
+blackballed for long. `src/lib/llmBridge.ts` returning `null` means "use the
+cloud path"; it is never an error.
+
+If neither is available, `complete()` throws a named error rather than failing
+somewhere deeper with an opaque SDK message.
 
 ## Screens
 
