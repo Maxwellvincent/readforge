@@ -45,26 +45,32 @@ export function levelLabel(level: ReadingLevel): string {
   return labels[level];
 }
 
+/**
+ * Reading level is an ordered scale, so it ramps along one axis — sage (easiest)
+ * through sand to rose (hardest) — instead of six unrelated hues. Six competing
+ * colours read as decoration; a ramp reads as data.
+ */
 export function levelColor(level: ReadingLevel): string {
   const colors: Record<ReadingLevel, string> = {
-    elementary: "text-emerald-500",
-    middle: "text-green-500",
-    "high-school": "text-yellow-500",
-    college: "text-orange-500",
-    graduate: "text-red-500",
-    professional: "text-purple-500",
+    elementary: "text-[var(--sage-ink)]",
+    middle: "text-[var(--sage-ink)]",
+    "high-school": "text-[var(--sand-ink)]",
+    college: "text-[var(--sand-ink)]",
+    graduate: "text-[var(--rose-ink)]",
+    professional: "text-[var(--rose-ink)]",
   };
   return colors[level];
 }
 
+/** Same ramp as levelColor: a pale wash of the accent, with ink text on top. */
 export function levelBadgeColor(level: ReadingLevel): string {
   const colors: Record<ReadingLevel, string> = {
-    elementary: "bg-emerald-100 text-emerald-800",
-    middle: "bg-green-100 text-green-800",
-    "high-school": "bg-yellow-100 text-yellow-800",
-    college: "bg-orange-100 text-orange-800",
-    graduate: "bg-red-100 text-red-800",
-    professional: "bg-purple-100 text-purple-800",
+    elementary: "bg-[color-mix(in_oklab,var(--sage)_38%,transparent)] text-foreground",
+    middle: "bg-[color-mix(in_oklab,var(--sage)_38%,transparent)] text-foreground",
+    "high-school": "bg-[color-mix(in_oklab,var(--sand)_45%,transparent)] text-foreground",
+    college: "bg-[color-mix(in_oklab,var(--sand)_45%,transparent)] text-foreground",
+    graduate: "bg-[color-mix(in_oklab,var(--rose)_34%,transparent)] text-foreground",
+    professional: "bg-[color-mix(in_oklab,var(--rose)_34%,transparent)] text-foreground",
   };
   return colors[level];
 }

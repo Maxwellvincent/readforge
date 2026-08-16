@@ -226,7 +226,7 @@ export function ArticleReader({ article }: Props) {
           <button
             onClick={() => setRsvpOpen(true)}
             disabled={displayContent.split(/\s+/).length < 10}
-            className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 transition-colors disabled:opacity-40"
+            className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border border-border bg-card text-[var(--sand-ink)] hover:bg-card transition-colors disabled:opacity-40"
           >
             <Zap className="w-3.5 h-3.5" />
             RSVP
@@ -250,7 +250,7 @@ export function ArticleReader({ article }: Props) {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-10">
+      <div className="max-w-3xl mx-auto px-6 py-10">
         {/* Article meta */}
         <div className="mb-8">
           <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -271,7 +271,7 @@ export function ArticleReader({ article }: Props) {
               </span>
             ))}
           </div>
-          <h1 className="text-3xl font-bold leading-tight mb-3">
+          <h1 className="text-3xl font-bold leading-tight mb-3 max-w-[22ch] text-balance">
             {article.title}
           </h1>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -329,9 +329,9 @@ export function ArticleReader({ article }: Props) {
             </p>
             <div className="grid grid-cols-3 gap-3 mb-4">
               {[
-                { label: "Subject", value: selectedSentence.subject, color: "text-yellow-400" },
-                { label: "Verb", value: selectedSentence.verb, color: "text-red-400" },
-                { label: "Complement", value: selectedSentence.complement?.slice(0, 60) + "...", color: "text-green-400" },
+                { label: "Subject", value: selectedSentence.subject, color: "text-[var(--sand-ink)]" },
+                { label: "Verb", value: selectedSentence.verb, color: "text-[var(--rose-ink)]" },
+                { label: "Complement", value: selectedSentence.complement?.slice(0, 60) + "...", color: "text-[var(--sage-ink)]" },
               ].map((item) => (
                 <div key={item.label} className="bg-background rounded-lg p-3">
                   <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
@@ -405,7 +405,7 @@ export function ArticleReader({ article }: Props) {
           </div>
         )}
         {!fetchingFull && fullText && (
-          <div className="flex items-center gap-2 text-xs text-emerald-400 mb-6">
+          <div className="flex items-center gap-2 text-xs text-[var(--sage-ink)] mb-6">
             <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
             </svg>
@@ -415,7 +415,7 @@ export function ArticleReader({ article }: Props) {
 
         {/* Article Body */}
         {!quizMode && (
-          <div className="reading-body text-foreground">
+          <div className="reading-body mx-auto">
             {paragraphs.map((para, i) => renderParagraph(para, i))}
           </div>
         )}
@@ -468,14 +468,14 @@ export function ArticleReader({ article }: Props) {
                 )}
 
                 {showResults && (
-                  <div className="bg-card border border-border rounded-2xl p-6 text-center">
+                  <div className="bg-card border border-border rounded-[10px] p-6 text-center">
                     <div
                       className={`text-5xl font-bold mb-2 ${
                         score / questions.length >= 0.8
-                          ? "text-emerald-400"
+                          ? "text-[var(--sage-ink)]"
                           : score / questions.length >= 0.6
-                          ? "text-yellow-400"
-                          : "text-red-400"
+                          ? "text-[var(--sand-ink)]"
+                          : "text-[var(--rose-ink)]"
                       }`}
                     >
                       {score}/{questions.length}
@@ -517,7 +517,7 @@ function QuizQuestion({
   const isCorrect = selected === question.correctAnswer;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className="bg-card border border-border rounded-[10px] p-5">
       <div className="flex items-start gap-3 mb-4">
         <span className="bg-primary/15 text-primary text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">
           {index}
@@ -534,8 +534,8 @@ function QuizQuestion({
           const isSelected = selected === choice.label;
           const isAnswer = choice.label === question.correctAnswer;
           let style = "border-border text-foreground bg-background hover:border-primary/40";
-          if (showResult && isAnswer) style = "border-emerald-500 bg-emerald-500/10 text-emerald-300";
-          else if (showResult && isSelected && !isAnswer) style = "border-red-500 bg-red-500/10 text-red-300";
+          if (showResult && isAnswer) style = "border-border bg-card text-[var(--sage-ink)]";
+          else if (showResult && isSelected && !isAnswer) style = "border-border bg-card text-[var(--rose-ink)]";
           else if (isSelected) style = "border-primary bg-primary/10 text-primary";
 
           return (

@@ -100,10 +100,10 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
   }
 
   const stats = [
-    { label: "Current WPM", value: profile?.currentWpm ?? 200, icon: Zap, color: "text-yellow-400" },
-    { label: "Articles Read", value: profile?.articlesRead ?? 0, icon: BookOpen, color: "text-indigo-400" },
-    { label: "CARS Sessions", value: "—", icon: Target, color: "text-red-400" },
-    { label: "Reading Level", value: levelLabel((profile?.readingLevel as ReadingLevel) ?? "college"), icon: Layers, color: "text-purple-400" },
+    { label: "Current WPM", value: profile?.currentWpm ?? 200, icon: Zap, color: "text-[var(--sand-ink)]" },
+    { label: "Articles Read", value: profile?.articlesRead ?? 0, icon: BookOpen, color: "text-[var(--sky-ink)]" },
+    { label: "CARS Sessions", value: "—", icon: Target, color: "text-[var(--rose-ink)]" },
+    { label: "Reading Level", value: levelLabel((profile?.readingLevel as ReadingLevel) ?? "college"), icon: Layers, color: "text-[var(--lilac-ink)]" },
   ];
 
   return (
@@ -113,7 +113,7 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {stats.map((s) => (
-          <div key={s.label} className="bg-card border border-border rounded-2xl p-5">
+          <div key={s.label} className="bg-card border border-border rounded-[10px] p-5">
             <s.icon className={`w-5 h-5 ${s.color} mb-3`} />
             <p className="text-2xl font-bold">{s.value}</p>
             <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
@@ -122,7 +122,7 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
       </div>
 
       {/* Edit profile */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+      <div className="bg-card border border-border rounded-[10px] p-6 mb-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-14 h-14 bg-primary/20 rounded-full flex items-center justify-center">
             <User className="w-7 h-7 text-primary" />
@@ -139,7 +139,7 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+              className="w-full bg-card border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
             />
           </div>
           <div>
@@ -163,7 +163,7 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
       </div>
 
       {/* ── Connected Services ─────────────────────────────────────── */}
-      <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+      <div className="bg-card border border-border rounded-[10px] p-6 mb-6">
         <div className="flex items-center gap-2 mb-6">
           <Link2 className="w-5 h-5 text-primary" />
           <h2 className="font-semibold text-lg">Connected Services</h2>
@@ -176,8 +176,8 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
         <div className="border border-border rounded-xl p-5 mb-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-orange-500/15 border border-orange-500/20 rounded-lg flex items-center justify-center">
-                <BookMarked className="w-4 h-4 text-orange-400" />
+              <div className="w-9 h-9 bg-card border border-border rounded-lg flex items-center justify-center">
+                <BookMarked className="w-4 h-4 text-[var(--rose-ink)]" />
               </div>
               <div>
                 <p className="font-medium text-sm">Readwise</p>
@@ -186,7 +186,7 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
             </div>
             {rwConnected ? (
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                <span className="flex items-center gap-1.5 text-xs text-[var(--sage-ink)]">
                   <CheckCircle className="w-3.5 h-3.5" /> Connected
                 </span>
                 <button
@@ -215,12 +215,12 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
                   onChange={(e) => setRwInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") connectReadwise(); }}
                   placeholder="Paste access token..."
-                  className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary transition-colors"
+                  className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-primary transition-colors"
                 />
                 <button
                   onClick={connectReadwise}
                   disabled={rwSaving || !rwInput.trim()}
-                  className="bg-orange-500/15 border border-orange-500/30 text-orange-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-500/25 transition-colors disabled:opacity-50 flex items-center gap-2 shrink-0"
+                  className="bg-card border border-border text-[var(--rose-ink)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-card transition-colors disabled:opacity-50 flex items-center gap-2 shrink-0"
                 >
                   {rwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : rwSaved ? <CheckCircle className="w-4 h-4" /> : null}
                   {rwSaved ? "Connected!" : "Connect"}
@@ -240,8 +240,8 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
         <div className="border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-amber-500/15 border border-amber-500/20 rounded-lg flex items-center justify-center">
-                <Star className="w-4 h-4 text-amber-400" />
+              <div className="w-9 h-9 bg-card border border-border rounded-lg flex items-center justify-center">
+                <Star className="w-4 h-4 text-[var(--sand-ink)]" />
               </div>
               <div>
                 <p className="font-medium text-sm">Goodreads</p>
@@ -250,7 +250,7 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
             </div>
             {grUserId ? (
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+                <span className="flex items-center gap-1.5 text-xs text-[var(--sage-ink)]">
                   <CheckCircle className="w-3.5 h-3.5" /> ID: {grUserId}
                 </span>
                 <button
@@ -277,12 +277,12 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
                 onChange={(e) => setGrInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") saveGoodreads(); }}
                 placeholder="Goodreads User ID (e.g. 12345678)"
-                className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
+                className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary transition-colors"
               />
               <button
                 onClick={saveGoodreads}
                 disabled={grSaving || !grInput.trim()}
-                className="bg-amber-500/15 border border-amber-500/30 text-amber-400 px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-500/25 transition-colors disabled:opacity-50 flex items-center gap-2 shrink-0"
+                className="bg-card border border-border text-[var(--sand-ink)] px-4 py-2 rounded-lg text-sm font-medium hover:bg-card transition-colors disabled:opacity-50 flex items-center gap-2 shrink-0"
               >
                 {grSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : grSaved ? <CheckCircle className="w-4 h-4" /> : <Star className="w-4 h-4" />}
                 {grSaved ? "Saved!" : grUserId ? "Update" : "Connect"}
@@ -297,7 +297,7 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
       </div>
 
       {/* Cambridge Method Info */}
-      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6">
+      <div className="bg-primary/5 border border-primary/20 rounded-[10px] p-6">
         <h3 className="font-semibold mb-3">Your Learning Path</h3>
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>ReadForge uses the Cambridge Learning Center methodology — the same system used by top MCAT CARS scorers.</p>

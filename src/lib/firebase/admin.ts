@@ -45,14 +45,30 @@ export function adminAuth(): Auth {
   return getAuth(adminApp());
 }
 
-let _db: Firestore | null = null;
+/**
+ * `settings()` may only be called once per Firestore instance, and
+ * `getFirestore()` hands back the same instance across module instances — which
+ * a module-level cache alone does not cover. Dev HMR and separate route bundles
+ * both re-run this module against an already-configured instance, so the flag
+ * lives on globalThis and the call is defensive on top of that.
+ */
+const CONFIGURED = Symbol.for("readforge.firestore.configured");
+type GlobalWithFlag = typeof globalThis & { [CONFIGURED]?: boolean };
 
 export function adminDb(): Firestore {
-  if (!_db) {
-    _db = getFirestore(adminApp());
-    _db.settings({ ignoreUndefinedProperties: true });
+  const db = getFirestore(adminApp());
+  const g = globalThis as GlobalWithFlag;
+
+  if (!g[CONFIGURED]) {
+    try {
+      db.settings({ ignoreUndefinedProperties: true });
+    } catch {
+      // Already configured by another module instance — nothing to do.
+    }
+    g[CONFIGURED] = true;
   }
-  return _db;
+
+  return db;
 }
 
 export { getApp as getAdminAppByName };

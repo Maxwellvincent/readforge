@@ -9,9 +9,9 @@ const MODES = [
     title: "Practice Mode",
     description: "Work through one passage at a time. No time pressure. Full explanations after each question.",
     icon: BookOpen,
-    color: "text-indigo-400",
-    bg: "bg-indigo-500/10",
-    border: "hover:border-indigo-500/40",
+    color: "text-[var(--sky-ink)]",
+    bg: "bg-card",
+    border: "hover:border-border",
     badge: "Best for beginners",
   },
   {
@@ -19,9 +19,9 @@ const MODES = [
     title: "Timed CARS Session",
     description: "Full MCAT simulation: 3 passages, 90-second reading per passage, 6 questions each. Cambridge stacking technique recommended.",
     icon: Clock,
-    color: "text-yellow-400",
-    bg: "bg-yellow-500/10",
-    border: "hover:border-yellow-500/40",
+    color: "text-[var(--sand-ink)]",
+    bg: "bg-card",
+    border: "hover:border-border",
     badge: "MCAT simulation",
   },
   {
@@ -29,9 +29,9 @@ const MODES = [
     title: "Diagnostic Test",
     description: "Assess your current level across all 8 question types. Get a detailed skill breakdown.",
     icon: Target,
-    color: "text-red-400",
-    bg: "bg-red-500/10",
-    border: "hover:border-red-500/40",
+    color: "text-[var(--rose-ink)]",
+    bg: "bg-card",
+    border: "hover:border-border",
     badge: "First-time users",
   },
 ];
@@ -53,7 +53,7 @@ export function CARSHome() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
-          <Target className="w-6 h-6 text-red-400" />
+          <Target className="w-6 h-6 text-[var(--rose-ink)]" />
           <h1 className="text-3xl font-bold">MCAT CARS Prep</h1>
         </div>
         <p className="text-muted-foreground">
@@ -63,7 +63,7 @@ export function CARSHome() {
       </div>
 
       {/* Cambridge methodology reminder */}
-      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 mb-8">
+      <div className="bg-primary/5 border border-primary/20 rounded-[10px] p-5 mb-8">
         <h3 className="font-semibold mb-2 flex items-center gap-2">
           <Brain className="w-4 h-4 text-primary" />
           Before You Begin: Cambridge Approach
@@ -87,7 +87,7 @@ export function CARSHome() {
           <Link
             key={mode.id}
             href={`/cars/session?mode=${mode.id}`}
-            className={`bg-card border border-border rounded-2xl p-6 ${mode.border} transition-all group`}
+            className={`bg-card border border-border rounded-[10px] p-6 ${mode.border} transition-all group`}
           >
             <div
               className={`w-10 h-10 ${mode.bg} rounded-xl flex items-center justify-center mb-4`}
@@ -109,7 +109,7 @@ export function CARSHome() {
       </div>
 
       {/* Question types reference */}
-      <div className="bg-card border border-border rounded-2xl p-6">
+      <div className="bg-card border border-border rounded-[10px] p-6">
         <h2 className="font-semibold mb-1">8 CARS Question Types</h2>
         <p className="text-xs text-muted-foreground mb-5">
           Foundations of Comprehension 30% · Reasoning Within Text 30% · Reasoning Beyond Text 40%
@@ -137,13 +137,13 @@ export function CARSHome() {
             icon: Zap,
             title: "Inference Questions",
             tip: "The correct answer requires the FEWEST logical steps from the text. Extreme interpretations are always wrong.",
-            color: "text-yellow-400",
+            color: "text-[var(--sand-ink)]",
           },
           {
             icon: Target,
             title: "Main Idea Questions",
             tip: "Find the thesis paragraph. The main idea is most often in the conclusion sentence of the first paragraph.",
-            color: "text-red-400",
+            color: "text-[var(--rose-ink)]",
           },
         ].map((tip) => (
           <div

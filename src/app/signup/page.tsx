@@ -110,7 +110,7 @@ export default function SignupPage() {
           <span className="font-bold text-lg tracking-tight">ReadForge</span>
         </Link>
 
-        <div className="bg-card border border-border rounded-2xl p-8">
+        <div className="bg-card border border-border rounded-[10px] p-8">
           <h1 className="text-2xl font-bold mb-1">Create your account</h1>
           <p className="text-muted-foreground text-sm mb-6">
             Start forging your reading skills today
@@ -164,7 +164,7 @@ export default function SignupPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+                className="w-full bg-card border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
                 placeholder="Your name"
               />
             </div>
@@ -175,7 +175,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+                className="w-full bg-card border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
                 placeholder="you@example.com"
               />
             </div>
@@ -188,7 +188,7 @@ export default function SignupPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={8}
-                  className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 pr-10 text-sm outline-none focus:border-primary transition-colors"
+                  className="w-full bg-card border border-border rounded-lg px-3.5 py-2.5 pr-10 text-sm outline-none focus:border-primary transition-colors"
                   placeholder="Min 8 characters"
                 />
                 <button

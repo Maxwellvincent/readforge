@@ -114,7 +114,7 @@ export default function LoginPage() {
           <span className="font-bold text-lg tracking-tight">ReadForge</span>
         </Link>
 
-        <div className="bg-card border border-border rounded-2xl p-8">
+        <div className="bg-card border border-border rounded-[10px] p-8">
           <h1 className="text-2xl font-bold mb-1">Welcome back</h1>
           <p className="text-muted-foreground text-sm mb-6">
             Sign in to continue your training
@@ -174,7 +174,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+                className="w-full bg-card border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
                 placeholder="you@example.com"
               />
             </div>
@@ -195,7 +195,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 pr-10 text-sm outline-none focus:border-primary transition-colors"
+                  className="w-full bg-card border border-border rounded-lg px-3.5 py-2.5 pr-10 text-sm outline-none focus:border-primary transition-colors"
                   placeholder="••••••••"
                 />
                 <button

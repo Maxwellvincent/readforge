@@ -7,48 +7,48 @@ const features = [
     title: "Cambridge-Method Reader",
     description:
       "Every article analyzed using the Cambridge Learning methodology. Rhetorical cues highlighted. Key Clauses revealed. Subject→Verb→Complement broken down in one click.",
-    color: "text-indigo-400",
-    bg: "bg-indigo-500/10",
+    color: "text-[var(--sky-ink)]",
+    bg: "bg-card",
   },
   {
     icon: Zap,
     title: "Speed Reading Trainer",
     description:
       "RSVP (Rapid Serial Visual Presentation) trainer from 100–1000 WPM. Focus-line mode. Track your WPM growth over time. Build reading reflexes.",
-    color: "text-yellow-400",
-    bg: "bg-yellow-500/10",
+    color: "text-[var(--sand-ink)]",
+    bg: "bg-card",
   },
   {
     icon: Brain,
     title: "AI Comprehension Quizzes",
     description:
       "Claude AI generates comprehension questions calibrated to your level after every article. Literal, inferential, vocabulary-in-context, and author-purpose questions.",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
+    color: "text-[var(--sage-ink)]",
+    bg: "bg-card",
   },
   {
     icon: Target,
     title: "MCAT CARS Prep Mode",
     description:
       "Full 9-passage, 90-minute CARS sessions. All 8 question types: Main Idea, Key Idea, Inference, Support, Weaken, Analogy, Detail, Purpose — with detailed explanations.",
-    color: "text-red-400",
-    bg: "bg-red-500/10",
+    color: "text-[var(--rose-ink)]",
+    bg: "bg-card",
   },
   {
     icon: Layers,
     title: "Grammar Foundation",
     description:
       "10 interactive Cambridge modules: Parts of Speech → Sentence Anatomy → Clauses → Phrases → Rhetoric. The grammatical X-ray that makes every sentence instantly parseable.",
-    color: "text-purple-400",
-    bg: "bg-purple-500/10",
+    color: "text-[var(--lilac-ink)]",
+    bg: "bg-card",
   },
   {
     icon: TrendingUp,
     title: "Article Library",
     description:
       "Curated articles from The Atlantic, NYRB, Aeon, Nautilus, Scientific American, and JSTOR Daily. Filtered by difficulty level, topic, and source.",
-    color: "text-sky-400",
-    bg: "bg-sky-500/10",
+    color: "text-[var(--sky-ink)]",
+    bg: "bg-card",
   },
 ];
 
@@ -132,7 +132,7 @@ export default function LandingPage() {
 
       {/* Cambridge Methodology callout */}
       <section className="max-w-6xl mx-auto px-6 py-10">
-        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 md:p-10">
+        <div className="bg-primary/5 border border-primary/20 rounded-[10px] p-8 md:p-10">
           <div className="max-w-3xl">
             <h2 className="text-2xl font-bold mb-4">
               The Cambridge Learning Method
@@ -147,9 +147,9 @@ export default function LandingPage() {
             </p>
             <p className="text-muted-foreground leading-relaxed">
               ReadForge trains you to parse grammar at reflex speed, recognize{" "}
-              <span className="text-orange-400 font-medium">contrast cues</span>,{" "}
-              <span className="text-blue-400 font-medium">conclusion words</span>,{" "}
-              <span className="text-yellow-400 font-medium">emphasis markers</span>,
+              <span className="text-[var(--rose-ink)] font-medium">contrast cues</span>,{" "}
+              <span className="text-[var(--sky-ink)] font-medium">conclusion words</span>,{" "}
+              <span className="text-[var(--sand-ink)] font-medium">emphasis markers</span>,
               and understand essay morphology — so every passage becomes a
               structured argument you can disassemble at will.
             </p>
@@ -166,7 +166,7 @@ export default function LandingPage() {
           {features.map((f) => (
             <div
               key={f.title}
-              className="bg-card border border-border rounded-2xl p-6 hover:border-primary/40 transition-colors"
+              className="bg-card border border-border rounded-[10px] p-6 hover:border-primary/40 transition-colors"
             >
               <div className={`w-10 h-10 ${f.bg} rounded-xl flex items-center justify-center mb-4`}>
                 <f.icon className={`w-5 h-5 ${f.color}`} />

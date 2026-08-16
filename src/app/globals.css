@@ -2,11 +2,27 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* This app is light-only. Tailwind v4's built-in `dark:` variant follows
+   prefers-color-scheme, and the bundled shadcn primitives still carry `dark:`
+   utilities — on a dark-set OS those would fire and half-invert the paper
+   palette. Bind the variant to a selector that never matches instead of
+   hand-stripping every class. */
+@custom-variant dark (&:where([data-theme="dark"] *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-body: var(--body);
+  --color-sage: var(--sage);
+  --color-sky: var(--sky);
+  --color-rose: var(--rose);
+  --color-sand: var(--sand);
+  --color-lilac: var(--lilac);
+  --color-sage-ink: var(--sage-ink);
+  --color-sky-ink: var(--sky-ink);
+  --color-rose-ink: var(--rose-ink);
+  --color-sand-ink: var(--sand-ink);
+  --color-lilac-ink: var(--lilac-ink);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
@@ -48,121 +64,183 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Zen Dojo — warm paper canvas, ink-wash restraint. Light only.
+   Accents appear ONLY inside data (charts, cue highlights, nav active fill),
+   never as page furniture.
+   Contrast note: the source brief specified muted #8A8A85, which measures
+   3.16:1 on the page canvas and fails WCAG AA for the 11px labels it was meant
+   for. Muted is darkened to #6E6E68 (4.67:1). Each data accent also carries a
+   readable variant at >=3:1 for strokes and text; the display value is for
+   fills only. */
 :root {
-  --background: oklch(0.08 0.01 264);
-  --foreground: oklch(0.95 0.005 264);
-  --card: oklch(0.11 0.01 264);
-  --card-foreground: oklch(0.95 0.005 264);
-  --popover: oklch(0.11 0.01 264);
-  --popover-foreground: oklch(0.95 0.005 264);
-  --primary: oklch(0.60 0.22 264);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.15 0.01 264);
-  --secondary-foreground: oklch(0.75 0.01 264);
-  --muted: oklch(0.14 0.01 264);
-  --muted-foreground: oklch(0.50 0.01 264);
-  --accent: oklch(0.60 0.22 264);
-  --accent-foreground: oklch(0.98 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.22 0.01 264);
-  --input: oklch(0.15 0.01 264);
-  --ring: oklch(0.60 0.22 264);
-  --chart-1: oklch(0.60 0.22 264);
-  --chart-2: oklch(0.65 0.20 180);
-  --chart-3: oklch(0.70 0.18 140);
-  --chart-4: oklch(0.75 0.20 55);
-  --chart-5: oklch(0.65 0.22 30);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.10 0.01 264);
-  --sidebar-foreground: oklch(0.85 0.005 264);
-  --sidebar-primary: oklch(0.60 0.22 264);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.15 0.01 264);
-  --sidebar-accent-foreground: oklch(0.85 0.005 264);
-  --sidebar-border: oklch(0.20 0.01 264);
-  --sidebar-ring: oklch(0.60 0.22 264);
+  color-scheme: light;
+
+  /* canvas + surfaces */
+  --background: #F7F4EC;
+  --foreground: #1E1E1C;
+  --card: #FFFDF7;
+  --card-foreground: #1E1E1C;
+  --popover: #FFFDF7;
+  --popover-foreground: #1E1E1C;
+
+  /* text ramp */
+  --body: #55554F;            /* 6.83:1 — prose and default UI text */
+  --muted: #F1ECE1;           /* muted SURFACE */
+  --muted-foreground: #67675F;/* 5.0:1 on page, 4.6:1 on the sidebar — labels, secondary text */
+
+  /* ink is the primary action colour: no brand hue competing with the paper */
+  --primary: #1E1E1C;
+  --primary-foreground: #FFFDF7;
+  --secondary: #EFEAE0;
+  --secondary-foreground: #1E1E1C;
+  --accent: #EFEAE0;
+  --accent-foreground: #1E1E1C;
+  --destructive: #B4524F;
+
+  --border: #E4DFD4;
+  --input: #E4DFD4;
+  --ring: #8A8A85;
+
+  /* data accents — display (fills) */
+  --sage: #A8C3A0;
+  --sky: #6E9EC7;
+  --rose: #D98A8A;
+  --sand: #D9C9A8;
+  --lilac: #B7B2D6;
+
+  /* data accents — readable (strokes, text, small marks) */
+  --sage-ink: #83987D;
+  --sky-ink: #6A98BF;
+  --rose-ink: #C87F7F;
+  --sand-ink: #9C9179;
+  --lilac-ink: #928EAB;
+
+  --chart-1: #6E9EC7;
+  --chart-2: #A8C3A0;
+  --chart-3: #D9C9A8;
+  --chart-4: #B7B2D6;
+  --chart-5: #D98A8A;
+
+  --radius: 0.625rem; /* 10px per the brief */
+
+  --sidebar: #EFEAE0;
+  --sidebar-foreground: #55554F;
+  --sidebar-primary: #1E1E1C;
+  --sidebar-primary-foreground: #FFFDF7;
+  --sidebar-accent: #E3EADF;      /* pale sage active fill */
+  --sidebar-accent-foreground: #1E1E1C;
+  --sidebar-border: #E4DFD4;
+  --sidebar-ring: #8A8A85;
+
+  /* semantic z-scale */
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-modal-backdrop: 30;
+  --z-modal: 40;
+  --z-toast: 50;
+  --z-tooltip: 60;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--background);
+    color: var(--body);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
+  h1, h2, h3, h4 {
+    color: var(--foreground);
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
   html {
     @apply font-sans;
     scroll-behavior: smooth;
   }
 }
 
+/* Brief type scale — fixed rem, product register (no fluid clamp in app UI) */
+.label-caps {
+  font-size: 0.6875rem;      /* 11px */
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.hero-numeral {
+  font-size: 3rem;           /* 48px */
+  line-height: 1;
+  font-weight: 600;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+@media (min-width: 1280px) {
+  .hero-numeral { font-size: 3.5rem; }
+}
+.paper-grain {
+  position: relative;
+}
+.paper-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 /* Article reading typography */
 .reading-body {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 1.125rem;
-  line-height: 1.85;
+  font-family: Georgia, 'Times New Roman', serif;  /* serif prose against the sans UI: a real contrast axis */
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: #3A3A36;            /* 9.4:1 — prose runs darker than UI body text */
+  max-width: 68ch;
+  text-wrap: pretty;
 }
 .reading-body p { margin-bottom: 1.5rem; }
 
 /* Rhetorical cue highlights */
-.cue-contrast   { background: rgba(249,115,22,0.18); color: #fb923c; border-radius: 3px; padding: 1px 4px; }
-.cue-conclusion { background: rgba(59,130,246,0.18); color: #60a5fa; border-radius: 3px; padding: 1px 4px; }
-.cue-emphasis   { background: rgba(234,179,8,0.18);  color: #fbbf24; border-radius: 3px; padding: 1px 4px; }
-.cue-enumeration{ background: rgba(168,85,247,0.18); color: #c084fc; border-radius: 3px; padding: 1px 4px; }
-.cue-addition   { background: rgba(34,197,94,0.18);  color: #4ade80; border-radius: 3px; padding: 1px 4px; }
-
-/* Key sentence left-border */
-.key-sentence {
-  border-left: 3px solid var(--primary);
-  padding-left: 1rem;
-  background: oklch(0.60 0.22 264 / 0.05);
-  border-radius: 0 4px 4px 0;
+/* Cue highlights wash the paper; the words stay ink so highlighting never
+   costs legibility. Distinction carries in the hue of the wash, not the text. */
+.cue-contrast,
+.cue-conclusion,
+.cue-emphasis,
+.cue-enumeration,
+.cue-addition {
+  color: #2B2B27;
+  border-radius: 3px;
+  padding: 1px 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
+.cue-contrast   { background: rgba(217,138,138,0.28); }  /* rose */
+.cue-conclusion { background: rgba(110,158,199,0.26); }  /* sky */
+.cue-emphasis   { background: rgba(217,201,168,0.42); }  /* sand */
+.cue-enumeration{ background: rgba(183,178,214,0.30); }  /* lilac */
+.cue-addition   { background: rgba(168,195,160,0.32); }  /* sage */
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: oklch(0.25 0.01 264); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: oklch(0.35 0.01 264); }
+/* Key sentence. Marked by a full hairline frame and a paper lift, not a side
+   stripe (side-stripe accents are a banned pattern). */
+.key-sentence {
+  display: block;
+  padding: 0.5rem 0.875rem;
+  margin: 0.25rem 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
 
 /* RSVP display */
 .rsvp-display {
   font-family: Georgia, serif;
+  color: var(--foreground);
   font-size: 2.5rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -171,4 +249,14 @@
 }
 
 /* Focus pivot line for RSVP */
-.rsvp-pivot { color: oklch(0.60 0.22 264); }
+.rsvp-pivot { color: var(--rose-ink); }
+
+/* Motion: state, not decoration. 150-200ms ease-out per the brief. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

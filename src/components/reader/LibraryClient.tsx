@@ -547,7 +547,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search articles, topics, sources..."
-            className="w-full bg-input border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+            className="w-full bg-card border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
           />
         </div>
         {tab !== "uploads" && (
@@ -555,7 +555,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value as ReadingLevel | "all")}
-              className="bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+              className="bg-card border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
             >
               <option value="all">All Levels</option>
               {["elementary","middle","high-school","college","graduate","professional"].map((l) => (
@@ -565,7 +565,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
             <select
               value={source}
               onChange={(e) => setSource(e.target.value)}
-              className="bg-input border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+              className="bg-card border border-border rounded-lg px-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
             >
               <option value="all">All Sources</option>
               {RSS_FEEDS.map((f) => (
@@ -667,7 +667,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
           </div>
           {docsLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-40" />)}
+              {[1,2,3].map((i) => <div key={i} className="bg-card border border-border rounded-[10px] p-5 animate-pulse h-40" />)}
             </div>
           ) : userDocs.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
@@ -701,7 +701,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                   <Link
                     key={d.id as string}
                     href={`/library/${article.id}?data=${encodeURIComponent(JSON.stringify(article))}`}
-                    className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex flex-col"
+                    className="bg-card border border-border rounded-[10px] p-5 hover:border-primary/40 transition-all group flex flex-col"
                   >
                     <div className="flex items-start gap-2 mb-2">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${levelBadgeColor(article.reading_level)}`}>
@@ -730,7 +730,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
       {/* Upload Modal */}
       {showUpload && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-lg shadow-xl">
+          <div className="bg-card border border-border rounded-[10px] p-6 w-full max-w-lg shadow-xl">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-bold text-lg">Upload Document</h2>
               <button onClick={() => { setShowUpload(false); setUploadError(""); }} className="text-muted-foreground hover:text-foreground">
@@ -752,7 +752,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
                   placeholder="Document title (auto-detected from filename)"
-                  className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+                  className="w-full bg-card border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
                 />
               </div>
               <div>
@@ -762,7 +762,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                   value={uploadAuthor}
                   onChange={(e) => setUploadAuthor(e.target.value)}
                   placeholder="e.g. David Hume"
-                  className="w-full bg-input border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
+                  className="w-full bg-card border border-border rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-primary transition-colors"
                 />
               </div>
 
@@ -812,7 +812,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                         value={uploadText}
                         onChange={(e) => setUploadText(e.target.value)}
                         placeholder="Paste article, book chapter, or any text here..."
-                        className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors h-32 resize-none"
+                        className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors h-32 resize-none"
                       />
                     </>
                   )}
@@ -844,7 +844,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                 onChange={(e) => setGutenbergSearch(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && gutenbergSearch.trim()) searchGutenberg(gutenbergSearch); }}
                 placeholder="Search 70,000+ free books (e.g. Nietzsche, Austen, Darwin)..."
-                className="w-full bg-input border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+                className="w-full bg-card border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
               />
             </div>
             <button
@@ -859,7 +859,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
 
           {gutenbergLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-44" />)}
+              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-[10px] p-5 animate-pulse h-44" />)}
             </div>
           ) : gutenbergBooks.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
@@ -869,9 +869,9 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {gutenbergBooks.map((book) => (
-                <div key={book.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col hover:border-primary/40 transition-all">
+                <div key={book.id} className="bg-card border border-border rounded-[10px] p-5 flex flex-col hover:border-primary/40 transition-all">
                   <div className="flex items-start gap-2 mb-2">
-                    <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                    <span className="text-xs bg-card text-[var(--sand-ink)] border border-border px-2 py-0.5 rounded-full">
                       Gutenberg
                     </span>
                     <span className="text-xs text-muted-foreground">#{book.download_count?.toLocaleString()} downloads</span>
@@ -919,7 +919,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                 onChange={(e) => setOlSearch(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && olSearch.trim()) searchOL(olSearch); }}
                 placeholder="Search 20M+ books (e.g. Marcus Aurelius, Virginia Woolf, James Baldwin)..."
-                className="w-full bg-input border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
+                className="w-full bg-card border border-border rounded-lg pl-9 pr-3.5 py-2 text-sm outline-none focus:border-primary transition-colors"
               />
             </div>
             <button
@@ -934,7 +934,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
 
           {olLoading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-52" />)}
+              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-[10px] p-5 animate-pulse h-52" />)}
             </div>
           ) : olBooks.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
@@ -944,7 +944,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {olBooks.map((book) => (
-                <div key={book.key} className="bg-card border border-border rounded-2xl p-5 flex flex-col hover:border-primary/40 transition-all">
+                <div key={book.key} className="bg-card border border-border rounded-[10px] p-5 flex flex-col hover:border-primary/40 transition-all">
                   <div className="flex gap-3 mb-3">
                     {book.coverUrl ? (
                       <img
@@ -959,11 +959,11 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                        <span className="text-xs bg-blue-500/15 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-card text-[var(--sky-ink)] border border-border px-2 py-0.5 rounded-full">
                           Open Library
                         </span>
                         {book.hasFullText && (
-                          <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-card text-[var(--sage-ink)] border border-border px-2 py-0.5 rounded-full">
                             Full Text
                           </span>
                         )}
@@ -1021,16 +1021,16 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
               <p className="text-sm mb-5">Add your Readwise access token in Profile Settings to sync your library here.</p>
               <a
                 href="/profile"
-                className="inline-flex items-center gap-2 bg-orange-500/15 border border-orange-500/30 text-orange-400 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-orange-500/25 transition-colors"
+                className="inline-flex items-center gap-2 bg-card border border-border text-[var(--rose-ink)] px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-card transition-colors"
               >
                 <BookMarked className="w-4 h-4" /> Go to Settings
               </a>
             </div>
           ) : (
             /* Connected header */
-            <div className="flex items-center justify-between bg-card border border-border rounded-2xl px-5 py-3 mb-6">
+            <div className="flex items-center justify-between bg-card border border-border rounded-[10px] px-5 py-3 mb-6">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-[var(--sage-ink)]" />
                 <span className="text-sm font-medium">Readwise connected</span>
                 <span className="text-xs text-muted-foreground">· {rwDocs.length} items loaded</span>
               </div>
@@ -1044,7 +1044,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                     setRwDocs([]);
                     fetchReadwise(loc);
                   }}
-                  className="bg-input border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+                  className="bg-card border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
                 >
                   <option value="later">Queue (Later)</option>
                   <option value="new">New / Inbox</option>
@@ -1076,7 +1076,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
           {/* Loading */}
           {rwLoading && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-44" />)}
+              {[1,2,3,4,5,6].map((i) => <div key={i} className="bg-card border border-border rounded-[10px] p-5 animate-pulse h-44" />)}
             </div>
           )}
 
@@ -1094,20 +1094,20 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {rwDocs.map((doc) => {
                 const categoryColor: Record<string, string> = {
-                  article: "bg-blue-500/15 text-blue-400 border-blue-500/20",
-                  pdf: "bg-red-500/15 text-red-400 border-red-500/20",
-                  epub: "bg-purple-500/15 text-purple-400 border-purple-500/20",
-                  book: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-                  email: "bg-green-500/15 text-green-400 border-green-500/20",
-                  rss: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-                  tweet: "bg-sky-500/15 text-sky-400 border-sky-500/20",
-                  video: "bg-rose-500/15 text-rose-400 border-rose-500/20",
+                  article: "bg-card text-[var(--sky-ink)] border-border",
+                  pdf: "bg-card text-[var(--rose-ink)] border-border",
+                  epub: "bg-card text-[var(--lilac-ink)] border-border",
+                  book: "bg-card text-[var(--sand-ink)] border-border",
+                  email: "bg-card text-[var(--sage-ink)] border-border",
+                  rss: "bg-card text-[var(--rose-ink)] border-border",
+                  tweet: "bg-card text-[var(--sky-ink)] border-border",
+                  video: "bg-card text-[var(--rose-ink)] border-border",
                 };
                 const catStyle = categoryColor[doc.category] ?? "bg-muted text-muted-foreground border-border";
                 const progressPct = Math.round(doc.reading_progress * 100);
 
                 return (
-                  <div key={doc.id} className="bg-card border border-border rounded-2xl p-5 flex flex-col hover:border-primary/40 transition-all">
+                  <div key={doc.id} className="bg-card border border-border rounded-[10px] p-5 flex flex-col hover:border-primary/40 transition-all">
                     {/* Cover image */}
                     {doc.image_url && (
                       <div
@@ -1189,7 +1189,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
               <p className="text-sm mb-5">Add your Goodreads User ID in Profile Settings to sync your shelves here.</p>
               <a
                 href="/profile"
-                className="inline-flex items-center gap-2 bg-amber-500/15 border border-amber-500/30 text-amber-400 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-amber-500/25 transition-colors"
+                className="inline-flex items-center gap-2 bg-card border border-border text-[var(--sand-ink)] px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-card transition-colors"
               >
                 <Star className="w-4 h-4" /> Go to Settings
               </a>
@@ -1199,7 +1199,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
               {/* Shelf filter + refresh */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-amber-400" />
+                  <Star className="w-4 h-4 text-[var(--sand-ink)]" />
                   <span className="text-sm font-medium">Goodreads · User {initialGoodreadsUserId}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1211,7 +1211,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                       setGoodreadsBooks([]);
                       fetchGoodreads(shelf);
                     }}
-                    className="bg-input border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
+                    className="bg-card border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
                   >
                     <option value="currently-reading">Currently Reading</option>
                     <option value="to-read">Want to Read</option>
@@ -1231,7 +1231,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
 
               {goodreadsLoading ? (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[1,2,3].map((i) => <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse h-44" />)}
+                  {[1,2,3].map((i) => <div key={i} className="bg-card border border-border rounded-[10px] p-5 animate-pulse h-44" />)}
                 </div>
               ) : goodreadsBooks.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
@@ -1246,18 +1246,18 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                       href={book.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex gap-4"
+                      className="bg-card border border-border rounded-[10px] p-5 hover:border-primary/40 transition-all group flex gap-4"
                     >
                       {book.cover && (
                         <img src={book.cover} alt={book.title} className="w-16 h-24 object-cover rounded-lg shrink-0" />
                       )}
                       <div className="flex flex-col flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0">
+                          <span className="text-xs bg-card text-[var(--sand-ink)] border border-border px-2 py-0.5 rounded-full shrink-0">
                             Goodreads
                           </span>
                           {book.rating && (
-                            <span className="text-xs text-yellow-400">{"★".repeat(Number(book.rating))}</span>
+                            <span className="text-xs text-[var(--sand-ink)]">{"★".repeat(Number(book.rating))}</span>
                           )}
                         </div>
                         <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2 group-hover:text-primary transition-colors">
@@ -1299,7 +1299,7 @@ function ArticleGrid({
   if (loading) return (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
       {Array.from({ length: 9 }).map((_, i) => (
-        <div key={i} className="bg-card border border-border rounded-2xl p-5 animate-pulse">
+        <div key={i} className="bg-card border border-border rounded-[10px] p-5 animate-pulse">
           <div className="h-4 bg-muted rounded mb-3 w-3/4" />
           <div className="h-3 bg-muted rounded mb-2 w-1/2" />
           <div className="h-16 bg-muted rounded mb-4" />
@@ -1342,7 +1342,7 @@ function ArticleCard({
   const readTime = estimateReadTime(article.word_count);
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 hover:border-primary/40 transition-all group flex flex-col relative">
+    <div className="bg-card border border-border rounded-[10px] p-5 hover:border-primary/40 transition-all group flex flex-col relative">
       {/* Bookmark button */}
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBookmark(article); }}

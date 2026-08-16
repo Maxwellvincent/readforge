@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ChevronRight,
   BookOpen,
   LayoutDashboard,
   Library,
@@ -52,15 +53,18 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                // Brief: 8px radius, pale sage fill when active, small right chevron.
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
                 active
-                  ? "bg-primary/15 text-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-sidebar-accent text-foreground"
+                  : "text-sidebar-foreground hover:bg-[color-mix(in_oklab,var(--sage)_18%,transparent)] hover:text-foreground"
               )}
             >
               <Icon className="w-4 h-4 shrink-0" />
-              {label}
+              <span className="flex-1">{label}</span>
+              {active && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />}
             </Link>
           );
         })}

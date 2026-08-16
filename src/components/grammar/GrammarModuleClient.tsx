@@ -87,7 +87,7 @@ function GrammarContent() {
                 <span
                   className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                     done
-                      ? "bg-emerald-500/20 text-emerald-400"
+                      ? "bg-card text-[var(--sage-ink)]"
                       : activeModule === i
                       ? "bg-primary/20 text-primary"
                       : "bg-muted text-muted-foreground"
@@ -173,7 +173,7 @@ function GrammarContent() {
             </button>
             {score.total > 0 && (
               <span className="ml-auto flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Award className="w-4 h-4 text-yellow-400" />
+                <Award className="w-4 h-4 text-[var(--sand-ink)]" />
                 {score.correct}/{score.total} correct
               </span>
             )}
@@ -199,7 +199,7 @@ function GrammarContent() {
 
           {mode === "drill" && !currentDrill && (
             <div className="text-center py-16">
-              <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
+              <CheckCircle className="w-12 h-12 text-[var(--sage-ink)] mx-auto mb-4" />
               <h3 className="text-xl font-bold mb-2">Lesson Complete!</h3>
               <p className="text-muted-foreground">
                 No drills available for this lesson yet.
@@ -215,7 +215,7 @@ function GrammarContent() {
 function LessonView({ lesson }: { lesson: GrammarLesson }) {
   return (
     <div>
-      <div className="bg-card border border-border rounded-2xl p-6 mb-5">
+      <div className="bg-card border border-border rounded-[10px] p-6 mb-5">
         <h2 className="text-lg font-semibold mb-1">{lesson.title}</h2>
         <p className="text-primary text-sm font-medium mb-4">{lesson.concept}</p>
         <div className="prose prose-invert prose-sm max-w-none">
@@ -289,7 +289,7 @@ function DrillView({
   const isCorrect = selected === drill.correctAnswer;
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6">
+    <div className="bg-card border border-border rounded-[10px] p-6">
       <div className="flex items-center justify-between mb-5">
         <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
           {drill.type.replace(/-/g, " ")}
@@ -314,9 +314,9 @@ function DrillView({
             const isAnswer = choice === drill.correctAnswer;
             let style = "border-border text-foreground bg-background hover:border-primary/40";
             if (showAnswer && isAnswer)
-              style = "border-emerald-500 bg-emerald-500/10 text-emerald-300";
+              style = "border-border bg-card text-[var(--sage-ink)]";
             else if (showAnswer && isSelected && !isAnswer)
-              style = "border-red-500 bg-red-500/10 text-red-300";
+              style = "border-border bg-card text-[var(--rose-ink)]";
             else if (isSelected) style = "border-primary bg-primary/10 text-primary";
 
             return (
@@ -337,8 +337,8 @@ function DrillView({
         <div
           className={`rounded-xl p-4 mb-4 text-sm ${
             isCorrect
-              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-300"
-              : "bg-red-500/10 border border-red-500/20 text-red-300"
+              ? "bg-card border border-border text-[var(--sage-ink)]"
+              : "bg-card border border-border text-[var(--rose-ink)]"
           }`}
         >
           <p className="font-semibold mb-1">

@@ -1,21 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE } from "@/lib/firebase/cookie";
+import { verifySessionCookieEdge } from "@/lib/firebase/verify-edge";
 
 /**
- * Redirect gating only — deliberately NOT authoritative.
+ * Authoritative session gating, without firebase-admin.
  *
- * Next 16 does run Proxy on the Node.js runtime, so `firebase-admin` imports
- * here just fine in dev. It does not survive the Vercel build: `jwks-rsa` is
- * CommonJS and `require()`s `jose`, which is ESM, so every request through the
- * proxy died with ERR_REQUIRE_ESM and the whole site 500'd. Verified in
- * production on 2026-08-15.
+ * firebase-admin cannot be imported here: Next externalizes it, native
+ * require() hits jwks-rsa (CJS) importing ESM-only jose, and every request
+ * 500s. Verified in production on 2026-08-15.
  *
- * So the proxy only asks "is there a session cookie at all", which is enough to
- * decide a redirect. Authority lives where the data does: every server
- * component and route handler calls `getSessionUser()`, which runs the real
- * `verifySessionCookie` in a normal serverless function where firebase-admin
- * loads correctly. A forged cookie therefore reaches a page shell and is then
- * bounced by that page's own check — it never yields data.
+ * Checking merely whether a cookie EXISTS is not an acceptable substitute: it
+ * produces an infinite redirect loop as soon as a cookie goes stale. /dashboard
+ * admits the request, the page fails verification and redirects to /login, and
+ * this proxy sees the same cookie and bounces it back to /dashboard. Observed
+ * in the browser on 2026-08-16.
+ *
+ * So the signature is verified here with `jose`, which bundles cleanly. Server
+ * components and route handlers still re-verify via firebase-admin with
+ * `checkRevoked`, which this cannot do — that check needs a network round-trip
+ * and belongs where the data is read.
  */
 const APP_PREFIXES = [
   "/dashboard",
@@ -30,7 +33,9 @@ const APP_PREFIXES = [
 // Local dev without .env should not redirect-loop.
 const isConfigured = Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
-export function proxy(request: NextRequest) {
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "";
+
+export async function proxy(request: NextRequest) {
   // Pass through when Firebase is not yet configured (local dev without .env).
   if (!isConfigured) return NextResponse.next({ request });
 
@@ -41,10 +46,17 @@ export function proxy(request: NextRequest) {
   if (!isAuthPage && !isApp) return NextResponse.next({ request });
 
   const cookie = request.cookies.get(SESSION_COOKIE)?.value;
-  const signedIn = Boolean(cookie);
+  const uid = await verifySessionCookieEdge(cookie, PROJECT_ID);
+  const signedIn = uid !== null;
 
   if (!signedIn && isApp) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    // Drop a stale or forged cookie so the next request starts clean; leaving
+    // it in place is what created the redirect loop.
+    if (cookie) {
+      response.cookies.set({ name: SESSION_COOKIE, value: "", path: "/", maxAge: 0 });
+    }
+    return response;
   }
 
   if (signedIn && isAuthPage) {

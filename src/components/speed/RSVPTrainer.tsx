@@ -414,8 +414,8 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
           {/* Header */}
           <div className="flex items-center justify-between px-8 py-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <Zap className="w-4 h-4 text-yellow-400" />
-              <span className="font-bold text-yellow-400">{wpm} WPM</span>
+              <Zap className="w-4 h-4 text-[var(--sand-ink)]" />
+              <span className="font-bold text-[var(--sand-ink)]">{wpm} WPM</span>
               <span className="text-xs text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground">
                 {textSource === "sample"
@@ -441,7 +441,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
           {/* Auto-close on finish */}
           {finished && (
             <div className="px-8 pb-8 text-center">
-              <p className="text-emerald-400 font-semibold mb-3">✓ Session complete at {wpm} WPM</p>
+              <p className="text-[var(--sage-ink)] font-semibold mb-3">✓ Session complete at {wpm} WPM</p>
               <button
                 onClick={() => setFocusMode(false)}
                 className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors"
@@ -472,7 +472,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
         </div>
 
         {/* Adaptive Level Banner */}
-        <div className="bg-card border border-border rounded-2xl p-4 mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div className="bg-card border border-border rounded-[10px] p-4 mb-6 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
             <div className="text-center">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Baseline</p>
@@ -485,17 +485,17 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">Next Target</p>
-              <p className="text-lg font-bold text-yellow-400">{target} <span className="text-xs font-normal text-muted-foreground">WPM</span></p>
+              <p className="text-lg font-bold text-[var(--sand-ink)]">{target} <span className="text-xs font-normal text-muted-foreground">WPM</span></p>
             </div>
           </div>
           <div className="flex flex-col items-end">
             <span className="text-xs font-semibold text-primary uppercase tracking-wide">{wpmLabel(localCurrentWpm)}</span>
-            {wpmGain > 0 && <span className="text-xs text-emerald-400">+{wpmGain} WPM from baseline</span>}
+            {wpmGain > 0 && <span className="text-xs text-[var(--sage-ink)]">+{wpmGain} WPM from baseline</span>}
           </div>
         </div>
 
         {/* Text Selection */}
-        <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+        <div className="bg-card border border-border rounded-[10px] p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Choose Your Text</h2>
             {/* Source tabs */}
@@ -603,7 +603,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
               value={customText}
               onChange={(e) => { setCustomText(e.target.value); reset(); }}
               placeholder="Paste any text here to practice speed reading..."
-              className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors h-32 resize-none"
+              className="w-full bg-card border border-border rounded-xl px-4 py-3 text-sm outline-none focus:border-primary transition-colors h-32 resize-none"
             />
           )}
 
@@ -613,15 +613,15 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
         </div>
 
         {/* WPM Control */}
-        <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+        <div className="bg-card border border-border rounded-[10px] p-6 mb-6">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="font-semibold">Session Speed</h2>
               <p className="text-xs text-muted-foreground mt-0.5">Pre-set to your current level — adjust to challenge yourself</p>
             </div>
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-yellow-400" />
-              <span className="text-2xl font-bold text-yellow-400">{wpm}</span>
+              <Zap className="w-4 h-4 text-[var(--sand-ink)]" />
+              <span className="text-2xl font-bold text-[var(--sand-ink)]">{wpm}</span>
               <span className="text-sm text-muted-foreground">WPM</span>
             </div>
           </div>
@@ -663,13 +663,13 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
         </div>
 
         {/* RSVP Display */}
-        <div className="bg-card border border-border rounded-2xl p-10 mb-6 text-center">
+        <div className="bg-card border border-border rounded-[10px] p-10 mb-6 text-center">
           <RSVPDisplay />
         </div>
 
         {/* ─── FINISHED STATE ─────────────────────────────────────────── */}
         {finished && (
-          <div className="bg-card border border-primary/30 rounded-2xl p-6 mb-6">
+          <div className="bg-card border border-primary/30 rounded-[10px] p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 {saving ? (
@@ -686,7 +686,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
               </div>
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Next target</p>
-                <p className="text-lg font-bold text-yellow-400">{target} WPM</p>
+                <p className="text-lg font-bold text-[var(--sand-ink)]">{target} WPM</p>
               </div>
             </div>
 
@@ -694,8 +694,8 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
             {quizSubmitted && comprehensionScore !== null && (
               <div className={`rounded-xl p-4 mb-4 text-sm ${
                 canLevelUp
-                  ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
-                  : "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400"
+                  ? "bg-card border border-border text-[var(--sage-ink)]"
+                  : "bg-card border border-border text-[var(--sand-ink)]"
               }`}>
                 {canLevelUp ? (
                   <>
@@ -734,7 +734,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
               {canLevelUp && (
                 <button
                   onClick={levelUp}
-                  className="flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-emerald-500/25 transition-colors"
+                  className="flex items-center gap-2 bg-card border border-border text-[var(--sage-ink)] px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-card transition-colors"
                 >
                   <ArrowUp className="w-4 h-4" /> Level Up to {target} WPM
                 </button>
@@ -758,7 +758,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
 
         {/* ─── COMPREHENSION QUIZ ─────────────────────────────────────── */}
         {showQuiz && activeQuiz && !quizSubmitted && (
-          <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+          <div className="bg-card border border-border rounded-[10px] p-6 mb-6">
             <div className="flex items-center gap-3 mb-6">
               <BookOpen className="w-5 h-5 text-primary" />
               <h3 className="font-bold text-lg">Comprehension Quiz</h3>
@@ -811,10 +811,10 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
 
         {/* Quiz answers revealed after submission */}
         {quizSubmitted && activeQuiz && showQuiz && (
-          <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+          <div className="bg-card border border-border rounded-[10px] p-6 mb-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-bold text-lg">Quiz Results</h3>
-              <span className={`text-xl font-bold ${comprehensionScore! >= 70 ? "text-emerald-400" : "text-yellow-400"}`}>
+              <span className={`text-xl font-bold ${comprehensionScore! >= 70 ? "text-[var(--sage-ink)]" : "text-[var(--sand-ink)]"}`}>
                 {comprehensionScore}%
               </span>
             </div>
@@ -823,16 +823,16 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
                 const userAnswer = quizAnswers[qi];
                 const correct = userAnswer === q.correctIndex;
                 return (
-                  <div key={qi} className={`rounded-xl p-4 border text-sm ${correct ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20"}`}>
+                  <div key={qi} className={`rounded-xl p-4 border text-sm ${correct ? "bg-card border-border" : "bg-card border-border"}`}>
                     <p className="font-medium mb-2">
                       {correct ? "✓" : "✗"} {q.question}
                     </p>
                     {!correct && userAnswer !== null && (
-                      <p className="text-xs text-red-400 mb-1">
+                      <p className="text-xs text-[var(--rose-ink)] mb-1">
                         You chose: {q.options[userAnswer]}
                       </p>
                     )}
-                    <p className="text-xs text-emerald-400">
+                    <p className="text-xs text-[var(--sage-ink)]">
                       Correct: {q.options[q.correctIndex]}
                     </p>
                   </div>
@@ -843,7 +843,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
         )}
 
         {/* Tips */}
-        <div className="mt-2 bg-muted/30 rounded-2xl p-5">
+        <div className="mt-2 bg-muted/30 rounded-[10px] p-5">
           <h3 className="font-semibold text-sm mb-3">Cambridge Speed Reading Protocol</h3>
           <div className="grid md:grid-cols-2 gap-3">
             {[

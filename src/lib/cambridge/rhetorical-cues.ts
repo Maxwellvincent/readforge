@@ -40,7 +40,7 @@ export function detectRhetoricalCues(sentence: string): RhetoricalCue[] {
         type: "contrast",
         word,
         description: "Contrast signal — highlights a key opposing point",
-        color: "bg-orange-100 text-orange-800 border-orange-300",
+        color: "bg-[color-mix(in_oklab,var(--rose)_30%,transparent)] text-foreground border-[var(--rose-ink)]",
       });
     }
   }
@@ -51,7 +51,7 @@ export function detectRhetoricalCues(sentence: string): RhetoricalCue[] {
         type: "conclusion",
         word,
         description: "Conclusion word — marks an important inference or result",
-        color: "bg-blue-100 text-blue-800 border-blue-300",
+        color: "bg-[color-mix(in_oklab,var(--sky)_28%,transparent)] text-foreground border-[var(--sky-ink)]",
       });
     }
   }
@@ -62,7 +62,7 @@ export function detectRhetoricalCues(sentence: string): RhetoricalCue[] {
         type: "emphasis",
         word,
         description: "Emphasis word — this sentence carries a key idea",
-        color: "bg-yellow-100 text-yellow-800 border-yellow-300",
+        color: "bg-[color-mix(in_oklab,var(--sand)_45%,transparent)] text-foreground border-[var(--sand-ink)]",
       });
     }
   }
@@ -73,7 +73,7 @@ export function detectRhetoricalCues(sentence: string): RhetoricalCue[] {
         type: "addition",
         word,
         description: "Addition language — extends the previous key sentence",
-        color: "bg-green-100 text-green-800 border-green-300",
+        color: "bg-[color-mix(in_oklab,var(--sage)_34%,transparent)] text-foreground border-[var(--sage-ink)]",
       });
     }
   }
@@ -85,7 +85,7 @@ export function detectRhetoricalCues(sentence: string): RhetoricalCue[] {
         type: "enumeration",
         word,
         description: "Enumeration — part of a list of criteria or points",
-        color: "bg-purple-100 text-purple-800 border-purple-300",
+        color: "bg-[color-mix(in_oklab,var(--lilac)_32%,transparent)] text-foreground border-[var(--lilac-ink)]",
       });
     }
   }
@@ -95,7 +95,7 @@ export function detectRhetoricalCues(sentence: string): RhetoricalCue[] {
       type: "question",
       word: "?",
       description: "Author's question — frames an issue the passage will answer",
-      color: "bg-indigo-100 text-indigo-800 border-indigo-300",
+      color: "bg-[color-mix(in_oklab,var(--lilac)_20%,transparent)] text-foreground border-[var(--lilac-ink)]",
     });
   }
 
@@ -104,7 +104,7 @@ export function detectRhetoricalCues(sentence: string): RhetoricalCue[] {
       type: "colon",
       word: sentence.includes(":") ? ":" : ";",
       description: "Colon/Semicolon — followed by explanation or example",
-      color: "bg-teal-100 text-teal-800 border-teal-300",
+      color: "bg-[color-mix(in_oklab,var(--sage)_20%,transparent)] text-foreground border-[var(--sage-ink)]",
     });
   }
 
@@ -113,7 +113,7 @@ export function detectRhetoricalCues(sentence: string): RhetoricalCue[] {
       type: "quotation",
       word: '"..."',
       description: "Quotation marks — ironic usage or key point being emphasized",
-      color: "bg-rose-100 text-rose-800 border-rose-300",
+      color: "bg-[color-mix(in_oklab,var(--rose)_18%,transparent)] text-foreground border-[var(--rose-ink)]",
     });
   }
 

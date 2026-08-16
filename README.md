@@ -151,6 +151,39 @@ The UI only ever receives a `readwiseConnected` boolean. Goodreads is different
 on purpose — a Goodreads user ID is a public profile identifier, not a
 credential, so it stays on the profile document.
 
+## Design language
+
+Zen Dojo, light only. Warm paper canvas (`#F7F4EC`), ivory cards (`#FFFDF7`),
+darker parchment sidebar (`#EFEAE0`), 1px hairline borders, **no shadows**, 10px
+radius. Ink (`#1E1E1C`) is the primary action colour — there is no competing
+brand hue. The five data accents (sage, sky, rose, sand, lilac) appear only
+inside data: charts, cue highlights, the active nav fill. Never as page
+furniture.
+
+Every accent carries two values: a display value for fills and an `-ink` variant
+at >=3:1 for strokes, small marks, and text.
+
+**Contrast is a hard constraint, since illegibility is what prompted the
+redesign.** The source brief specified `muted #8A8A85`, which measures 3.16:1 on
+the canvas and fails WCAG AA for the 11px labels it was meant for; muted is
+`#67675F` here (5.19:1 on page, 4.76:1 on the sidebar). Prose runs darker still
+(`#3A3A36`, 11.2:1). Body text is `#55554F` (6.83:1). Muted must never be used
+for paragraphs.
+
+There is no dark mode. Tailwind v4's `dark:` variant follows
+`prefers-color-scheme` and the bundled shadcn primitives still carry `dark:`
+utilities, so the variant is bound to a selector that never matches
+(`globals.css`) rather than hand-stripped.
+
+Banned in this codebase: side-stripe accent borders, gradient text,
+glassmorphism, custom scrollbars, and repeated identical card grids. The reader's
+key-sentence marker and the dashboard's action list were both rewritten to
+comply.
+
+Typography is one sans for UI at a fixed rem scale (no fluid clamp in app UI),
+with Georgia reserved for article prose — a real serif/sans contrast axis. The
+reading column is capped at 68ch.
+
 ## LLM calls
 
 `src/lib/claude.ts` routes every completion through one `complete()` helper that

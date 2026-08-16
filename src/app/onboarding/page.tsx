@@ -242,8 +242,8 @@ export default function OnboardingPage() {
                         ? "border-primary bg-primary/10 text-foreground"
                         : "border-border bg-card hover:border-primary/50";
                     } else {
-                      if (isCorrect) cls += "border-green-500 bg-green-500/10 text-green-400";
-                      else if (selected) cls += "border-red-500 bg-red-500/10 text-red-400";
+                      if (isCorrect) cls += "border-border bg-card text-[var(--sage-ink)]";
+                      else if (selected) cls += "border-border bg-card text-[var(--rose-ink)]";
                       else cls += "border-border bg-card text-muted-foreground";
                     }
                     return (
@@ -284,8 +284,8 @@ export default function OnboardingPage() {
         {/* RESULTS */}
         {phase === "results" && (
           <div className="text-center space-y-8">
-            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-              <CheckCircle className="w-10 h-10 text-green-500" />
+            <div className="w-20 h-20 bg-card rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle className="w-10 h-10 text-[var(--sage-ink)]" />
             </div>
             <div>
               <h2 className="text-2xl font-bold mb-2">Baseline Set</h2>

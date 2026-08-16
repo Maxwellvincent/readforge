@@ -86,8 +86,8 @@ export function RSVPModal({ text, title, defaultWpm = 250, onClose }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <Zap className="w-4 h-4 text-yellow-400 shrink-0" />
-          <span className="font-bold text-yellow-400 shrink-0">{wpm} WPM</span>
+          <Zap className="w-4 h-4 text-[var(--sand-ink)] shrink-0" />
+          <span className="font-bold text-[var(--sand-ink)] shrink-0">{wpm} WPM</span>
           <span className="text-xs text-muted-foreground">·</span>
           <span className="text-xs text-muted-foreground truncate">{title}</span>
         </div>
@@ -159,7 +159,7 @@ export function RSVPModal({ text, title, defaultWpm = 250, onClose }: Props) {
         {/* Position */}
         <p className="text-sm text-muted-foreground mb-12">
           {wordIndex + 1} / {words.length}
-          {finished && <span className="ml-3 text-emerald-400 font-medium">· Complete!</span>}
+          {finished && <span className="ml-3 text-[var(--sage-ink)] font-medium">· Complete!</span>}
         </p>
 
         {/* Controls */}

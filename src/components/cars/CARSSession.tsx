@@ -203,13 +203,13 @@ function SessionContent() {
           </div>
           {mode === "timed" && (
             <div className="flex items-center gap-2 bg-card border border-border rounded-xl px-4 py-2">
-              <Clock className="w-4 h-4 text-yellow-400" />
+              <Clock className="w-4 h-4 text-[var(--sand-ink)]" />
               <span className="font-mono font-bold">{formatTime(timeLeft)}</span>
             </div>
           )}
         </div>
 
-        <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+        <div className="bg-card border border-border rounded-[10px] p-6 mb-6">
           <h2 className="font-semibold mb-3">Cambridge Pre-Reading Checklist</h2>
           {[
             "Take 2-3 slow breaths. Clear your mind.",
@@ -335,14 +335,14 @@ function SessionContent() {
             </div>
           </div>
           {mode === "timed" && (
-            <div className={`font-mono font-bold text-sm ${timeLeft < 300 ? "text-red-400" : "text-muted-foreground"}`}>
+            <div className={`font-mono font-bold text-sm ${timeLeft < 300 ? "text-[var(--rose-ink)]" : "text-muted-foreground"}`}>
               {formatTime(timeLeft)}
             </div>
           )}
         </div>
 
         {/* Question */}
-        <div className="bg-card border border-border rounded-2xl p-6 mb-4">
+        <div className="bg-card border border-border rounded-[10px] p-6 mb-4">
           <div className="flex items-start gap-3 mb-5">
             <span className="bg-primary/15 text-primary text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">
               {currentQ + 1}
@@ -360,8 +360,8 @@ function SessionContent() {
               const isSelectedThis = selected === choice.label;
               const isAnswer = choice.label === q.correctAnswer;
               let style = "border-border text-foreground bg-background hover:border-primary/40 cursor-pointer";
-              if (showResult && isAnswer) style = "border-emerald-500 bg-emerald-500/10 text-emerald-300 cursor-default";
-              else if (showResult && isSelectedThis && !isAnswer) style = "border-red-500 bg-red-500/10 text-red-300 cursor-default";
+              if (showResult && isAnswer) style = "border-border bg-card text-[var(--sage-ink)] cursor-default";
+              else if (showResult && isSelectedThis && !isAnswer) style = "border-border bg-card text-[var(--rose-ink)] cursor-default";
               else if (isSelectedThis) style = "border-primary bg-primary/10 text-primary";
 
               return (
@@ -381,18 +381,18 @@ function SessionContent() {
 
         {/* Explanation */}
         {showResult && (
-          <div className={`rounded-2xl p-5 mb-4 ${
+          <div className={`rounded-[10px] p-5 mb-4 ${
             isCorrect
-              ? "bg-emerald-500/10 border border-emerald-500/20"
-              : "bg-red-500/10 border border-red-500/20"
+              ? "bg-card border border-border"
+              : "bg-card border border-border"
           }`}>
             <div className="flex items-center gap-2 mb-2">
               {isCorrect ? (
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <CheckCircle className="w-4 h-4 text-[var(--sage-ink)]" />
               ) : (
-                <AlertCircle className="w-4 h-4 text-red-400" />
+                <AlertCircle className="w-4 h-4 text-[var(--rose-ink)]" />
               )}
-              <span className={`text-sm font-semibold ${isCorrect ? "text-emerald-300" : "text-red-300"}`}>
+              <span className={`text-sm font-semibold ${isCorrect ? "text-[var(--sage-ink)]" : "text-[var(--rose-ink)]"}`}>
                 {isCorrect ? "Correct!" : `Incorrect — Answer: ${q.correctAnswer}`}
               </span>
             </div>
@@ -441,10 +441,10 @@ function SessionContent() {
           <div
             className={`text-6xl font-bold mb-3 ${
               scorePercent >= 70
-                ? "text-emerald-400"
+                ? "text-[var(--sage-ink)]"
                 : scorePercent >= 50
-                ? "text-yellow-400"
-                : "text-red-400"
+                ? "text-[var(--sand-ink)]"
+                : "text-[var(--rose-ink)]"
             }`}
           >
             {scorePercent}%

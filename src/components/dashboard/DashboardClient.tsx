@@ -55,32 +55,32 @@ const QUICK_ACTIONS = [
     label: "Read an Article",
     sublabel: "Cambridge-method overlay",
     icon: BookOpen,
-    color: "text-indigo-400",
-    bg: "bg-indigo-500/10 hover:bg-indigo-500/20",
+    color: "text-[var(--sky-ink)]",
+    bg: "bg-card hover:bg-card",
   },
   {
     href: "/speed",
     label: "Speed Drill",
     sublabel: "RSVP trainer",
     icon: Zap,
-    color: "text-yellow-400",
-    bg: "bg-yellow-500/10 hover:bg-yellow-500/20",
+    color: "text-[var(--sand-ink)]",
+    bg: "bg-card hover:bg-card",
   },
   {
     href: "/cars",
     label: "CARS Session",
     sublabel: "90-min timed mode",
     icon: Target,
-    color: "text-red-400",
-    bg: "bg-red-500/10 hover:bg-red-500/20",
+    color: "text-[var(--rose-ink)]",
+    bg: "bg-card hover:bg-card",
   },
   {
     href: "/grammar",
     label: "Grammar Drill",
     sublabel: "Cambridge modules",
     icon: Layers,
-    color: "text-purple-400",
-    bg: "bg-purple-500/10 hover:bg-purple-500/20",
+    color: "text-[var(--lilac-ink)]",
+    bg: "bg-card hover:bg-card",
   },
 ];
 
@@ -134,8 +134,8 @@ export function DashboardClient({
       href: "/speed",
       cta: "Open Speed Trainer",
       icon: Zap,
-      color: "text-yellow-400",
-      bg: "bg-yellow-500/10 border-yellow-500/20",
+      color: "text-[var(--sand-ink)]",
+      bg: "bg-card border-border",
     };
     if (lastComprehension !== null && lastComprehension < 75) return {
       label: "Priority: Strengthen Comprehension",
@@ -143,8 +143,8 @@ export function DashboardClient({
       href: "/grammar",
       cta: "Start Grammar Modules",
       icon: Layers,
-      color: "text-purple-400",
-      bg: "bg-purple-500/10 border-purple-500/20",
+      color: "text-[var(--lilac-ink)]",
+      bg: "bg-card border-border",
     };
     if (carsHistory.length === 0) return {
       label: "Priority: Benchmark Your CARS",
@@ -152,8 +152,8 @@ export function DashboardClient({
       href: "/cars",
       cta: "Start CARS Session",
       icon: Target,
-      color: "text-red-400",
-      bg: "bg-red-500/10 border-red-500/20",
+      color: "text-[var(--rose-ink)]",
+      bg: "bg-card border-border",
     };
     return {
       label: "Keep the Momentum",
@@ -161,8 +161,8 @@ export function DashboardClient({
       href: "/library",
       cta: "Open Article Library",
       icon: BookOpen,
-      color: "text-indigo-400",
-      bg: "bg-indigo-500/10 border-indigo-500/20",
+      color: "text-[var(--sky-ink)]",
+      bg: "bg-card border-border",
     };
   })();
 
@@ -171,7 +171,7 @@ export function DashboardClient({
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-1">
-          {greeting}, {firstName} 👋
+          {greeting}, {firstName}
         </h1>
         <p className="text-muted-foreground">
           {streakDays > 0
@@ -183,7 +183,7 @@ export function DashboardClient({
       {/* Start Here Banner */}
       <Link
         href={focusRec.href}
-        className={`flex items-center justify-between gap-4 ${focusRec.bg} border rounded-2xl px-6 py-4 mb-8 group hover:opacity-90 transition-opacity`}
+        className={`flex items-center justify-between gap-4 ${focusRec.bg} border rounded-[10px] px-6 py-4 mb-8 group hover:opacity-90 transition-opacity`}
       >
         <div className="flex items-center gap-4">
           <focusRec.icon className={`w-6 h-6 ${focusRec.color} shrink-0`} />
@@ -208,36 +208,36 @@ export function DashboardClient({
             sub:
               wpmGain > 0 ? `+${wpmGain} from baseline` : "No data yet",
             icon: Zap,
-            color: "text-yellow-400",
+            color: "text-[var(--sand-ink)]",
           },
           {
             label: "CARS Average",
             value: avgCarsScore ? `${avgCarsScore}%` : "—",
             sub: `${carsHistory.length} sessions`,
             icon: Target,
-            color: "text-red-400",
+            color: "text-[var(--rose-ink)]",
           },
           {
             label: "Articles Read",
             value: articlesRead.toString(),
             sub: "Total sessions",
             icon: BookOpen,
-            color: "text-indigo-400",
+            color: "text-[var(--sky-ink)]",
           },
           {
             label: "Grammar Modules",
             value: `${modulesCompleted}/${GRAMMAR_MODULES.length}`,
             sub: "Cambridge method",
             icon: Layers,
-            color: "text-purple-400",
+            color: "text-[var(--lilac-ink)]",
           },
         ].map((s) => (
           <div
             key={s.label}
-            className="bg-card border border-border rounded-2xl p-5"
+            className="bg-card border border-border rounded-[10px] p-5"
           >
             <div className="flex items-start justify-between mb-3">
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              <p className="label-caps">
                 {s.label}
               </p>
               <s.icon className={`w-4 h-4 ${s.color}`} />
@@ -251,7 +251,7 @@ export function DashboardClient({
       {/* Charts + Quick Actions */}
       <div className="grid lg:grid-cols-3 gap-6 mb-8">
         {/* WPM Chart */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-6">
+        <div className="lg:col-span-2 bg-card border border-border rounded-[10px] p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-semibold">Reading Speed Progress</h2>
@@ -265,32 +265,34 @@ export function DashboardClient({
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={wpmChartData}>
                 <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="oklch(0.22 0.01 264)"
+                  vertical={false}
+                  stroke="var(--border)"
                 />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fill: "oklch(0.50 0.01 264)" }}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "oklch(0.50 0.01 264)" }}
+                  tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "oklch(0.11 0.01 264)",
-                    border: "1px solid oklch(0.22 0.01 264)",
-                    borderRadius: "8px",
+                    background: "var(--card)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "10px",
                     fontSize: 12,
+                    color: "var(--foreground)",
+                    boxShadow: "none",
                   }}
                 />
                 <Line
                   type="monotone"
                   dataKey="wpm"
-                  stroke="oklch(0.60 0.22 264)"
+                  stroke="var(--sky-ink)"
                   strokeWidth={2}
                   dot={false}
                   name="WPM"
@@ -298,7 +300,7 @@ export function DashboardClient({
                 <Line
                   type="monotone"
                   dataKey="comprehension"
-                  stroke="oklch(0.65 0.20 180)"
+                  stroke="var(--sage-ink)"
                   strokeWidth={2}
                   dot={false}
                   name="Comprehension %"
@@ -313,7 +315,7 @@ export function DashboardClient({
         </div>
 
         {/* Skill Radar */}
-        <div className="bg-card border border-border rounded-2xl p-6">
+        <div className="bg-card border border-border rounded-[10px] p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-semibold">CARS Skills</h2>
@@ -325,16 +327,16 @@ export function DashboardClient({
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <RadarChart data={radarData}>
-              <PolarGrid stroke="oklch(0.22 0.01 264)" />
+              <PolarGrid stroke="var(--border)" />
               <PolarAngleAxis
                 dataKey="subject"
-                tick={{ fontSize: 9, fill: "oklch(0.50 0.01 264)" }}
+                tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
               />
               <Radar
                 name="Score"
                 dataKey="score"
-                stroke="oklch(0.60 0.22 264)"
-                fill="oklch(0.60 0.22 264)"
+                stroke="var(--sky-ink)"
+                fill="var(--sky)"
                 fillOpacity={0.2}
               />
             </RadarChart>
@@ -342,28 +344,32 @@ export function DashboardClient({
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions — list rows (label left, chevron right, hairline
+          dividers) rather than a fourth identical card grid on one screen. */}
       <div className="mb-8">
         <h2 className="font-semibold mb-4">Start Training</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {QUICK_ACTIONS.map((a) => (
+        <div className="bg-card border border-border rounded-[10px] overflow-hidden">
+          {QUICK_ACTIONS.map((a, i) => (
             <Link
               key={a.href}
               href={a.href}
-              className={`${a.bg} border border-transparent hover:border-border rounded-2xl p-5 transition-all group`}
+              className={`group flex items-center gap-4 px-5 py-4 transition-colors duration-150 hover:bg-[color-mix(in_oklab,var(--sage)_14%,transparent)] ${
+                i > 0 ? "border-t border-border" : ""
+              }`}
             >
-              <a.icon className={`w-6 h-6 ${a.color} mb-3`} />
-              <p className="font-semibold text-sm">{a.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {a.sublabel}
-              </p>
+              <a.icon className={`w-4 h-4 shrink-0 ${a.color}`} />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm text-foreground">{a.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{a.sublabel}</p>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5" />
             </Link>
           ))}
         </div>
       </div>
 
       {/* Grammar Progress */}
-      <div className="bg-card border border-border rounded-2xl p-6">
+      <div className="bg-card border border-border rounded-[10px] p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="font-semibold">Grammar Foundation</h2>
@@ -388,10 +394,10 @@ export function DashboardClient({
               <Link
                 key={mod}
                 href={`/grammar?module=${i + 1}`}
-                className={`text-center p-3 rounded-xl border text-xs font-medium transition-colors ${
+                className={`text-center p-3 rounded-[10px] border text-xs font-medium transition-colors duration-150 ${
                   done
-                    ? "bg-primary/15 border-primary/30 text-primary"
-                    : "bg-muted/50 border-border text-muted-foreground hover:border-primary/30"
+                    ? "bg-[color-mix(in_oklab,var(--sage)_30%,transparent)] border-[var(--sage-ink)]/40 text-foreground"
+                    : "bg-card border-border text-muted-foreground hover:border-[var(--sage-ink)]/40"
                 }`}
               >
                 <div className="text-lg mb-1">{done ? "✓" : i + 1}</div>
@@ -404,7 +410,7 @@ export function DashboardClient({
 
       {/* CARS History */}
       {carsHistory.length > 0 && (
-        <div className="mt-6 bg-card border border-border rounded-2xl p-6">
+        <div className="mt-6 bg-card border border-border rounded-[10px] p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-semibold">Recent CARS Sessions</h2>
             <Link href="/cars" className="text-xs text-primary hover:underline">
@@ -418,7 +424,7 @@ export function DashboardClient({
                 className="flex items-center justify-between py-2 border-b border-border last:border-0"
               >
                 <div className="flex items-center gap-3">
-                  <Flame className="w-4 h-4 text-orange-400" />
+                  <Flame className="w-4 h-4 text-[var(--rose-ink)]" />
                   <span className="text-sm">
                     {s.completedAt
                       ? format(new Date(s.completedAt), "MMM d, yyyy")
@@ -428,8 +434,8 @@ export function DashboardClient({
                 <span
                   className={`text-sm font-bold ${
                     (s.scorePercent ?? 0) >= 70
-                      ? "text-emerald-400"
-                      : "text-orange-400"
+                      ? "text-[var(--sage-ink)]"
+                      : "text-[var(--rose-ink)]"
                   }`}
                 >
                   {s.scorePercent ?? 0}%
