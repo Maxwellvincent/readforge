@@ -1,9 +1,8 @@
 import { cookies } from "next/headers";
 import { adminAuth } from "./admin";
+import { SESSION_COOKIE } from "./cookie";
 
-export const SESSION_COOKIE = "__session";
-/** Firebase caps session cookies at 14 days. */
-export const SESSION_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+export { SESSION_COOKIE, SESSION_MAX_AGE_MS } from "./cookie";
 
 export type SessionUser = {
   uid: string;

@@ -4,7 +4,7 @@
 > change to the stack, data model, API routes, screen inventory, or env vars
 > updates this file in the same commit as the code.
 >
-> Last verified against the tree: 2026-08-15
+> Last verified against the tree: 2026-08-15 (production deploy verified)
 
 Reading-training app: RSVP speed drills, Cambridge-method article reading, MCAT
 CARS practice, and grammar modules, with a library that pulls from RSS,
@@ -18,6 +18,7 @@ uploads.
 | Framework | Next.js 16 (App Router, React 19) |
 | Styling | Tailwind CSS 4, shadcn-style primitives, Radix |
 | Auth | Firebase Auth (email/password, Google, Apple) + Admin-minted session cookies |
+| Admin SDK | `firebase-admin` pinned to **v13** — see the note below |
 | Database | Cloud Firestore (project `readforge-app`, `(default)` database, nam5) |
 | LLM | llm-bridge first, Anthropic SDK fallback (`src/lib/claude.ts`) |
 | Charts | Recharts |
@@ -66,16 +67,30 @@ firebase apps:sdkconfig WEB --project readforge-app
    (`__session`, httpOnly, sameSite lax, secure in production), and creates the
    `users/{uid}` profile document if it does not exist — this replaces the old
    Postgres `handle_new_user` trigger.
-4. `src/proxy.ts` verifies that cookie on every app route. Next 16 runs Proxy on
-   the Node.js runtime by default (and rejects a `runtime` export outright), so
-   `firebase-admin` is available there and the check is authoritative, not a
-   presence heuristic. It uses `verifySessionCookie(cookie, false)` to skip a
-   network round-trip per request; server components and route handlers that read
-   user data re-check with `checkRevoked = true`.
-5. Sign-out DELETEs `/api/auth/session` and calls the client `signOut()`.
+4. `src/proxy.ts` checks only whether a session cookie is **present**, and uses
+   that for redirects. It deliberately does not import `firebase-admin`: doing so
+   pulls the package into the middleware bundle, where `jwks-rsa` (CommonJS)
+   `require()`s the ESM-only `jose` and every request 500s on Vercel. The cookie
+   constants therefore live in `src/lib/firebase/cookie.ts`, which has no
+   dependencies, and `session.ts` re-exports them.
+5. Authority lives with the data: every server component and route handler calls
+   `getSessionUser()`, which runs the real `verifySessionCookie` in a normal
+   serverless function. A forged cookie gets past the proxy and is then bounced
+   by the page's own check — verified in production, it redirects to `/login`
+   and yields no data.
+6. Sign-out DELETEs `/api/auth/session` and calls the client `signOut()`.
 
 There is no `/auth/callback` route — neither popup nor redirect OAuth needs one
 with the Firebase Web SDK.
+
+### firebase-admin is pinned to v13 on purpose
+
+`firebase-admin@14` depends on `jwks-rsa@4`, which depends on `jose@6` — and
+`jose@6` is ESM-only while `jwks-rsa` is CommonJS. Next externalizes
+`firebase-admin` by default, so it loads through native `require()`, and the
+whole app 500s in production with `ERR_REQUIRE_ESM` (it works fine in `next dev`,
+which is what makes it a nasty one). `firebase-admin@13` pulls `jwks-rsa@3` →
+`jose@4`, which ships CommonJS. Do not bump to 14 until that chain is ESM-clean.
 
 ## Data model
 
