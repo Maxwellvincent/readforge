@@ -1359,9 +1359,17 @@ function ArticleCard({
         className="flex flex-col flex-1"
       >
         {article.image_url && (
-          <div
-            className="w-full h-28 rounded-xl bg-muted mb-4 bg-cover bg-center"
-            style={{ backgroundImage: `url(${article.image_url})` }}
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={article.image_url}
+            alt=""
+            loading="lazy"
+            className="w-full h-28 rounded-[10px] object-cover mb-4 bg-muted"
+            onError={(e) => {
+              // Feeds link to images that 404 or block hotlinking; a broken one
+              // otherwise leaves an empty slab sitting in the card.
+              e.currentTarget.style.display = "none";
+            }}
           />
         )}
         <div className="flex items-start gap-2 mb-2 pr-7">
@@ -1372,10 +1380,10 @@ function ArticleCard({
             {article.source}
           </span>
         </div>
-        <h3 className="font-semibold text-sm leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors flex-1 pr-4">
+        <h3 className="font-semibold text-sm leading-snug mb-2 line-clamp-2 group-hover:text-primary transition-colors pr-4">
           {article.title}
         </h3>
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-3 flex-1">
           {article.excerpt}
         </p>
         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-auto">

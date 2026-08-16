@@ -1,7 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { Target, Clock, Brain, Zap, ChevronRight, BookOpen } from "lucide-react";
+import {
+  Target,
+  Clock,
+  Brain,
+  Zap,
+  ChevronRight,
+  BookOpen,
+  Key,
+  Check,
+  X,
+  Lightbulb,
+  Link2,
+  List,
+  HelpCircle,
+} from "lucide-react";
 
 const MODES = [
   {
@@ -37,14 +51,14 @@ const MODES = [
 ];
 
 const QUESTION_TYPES = [
-  { type: "Main Idea", description: "What is the central argument/purpose?", icon: "🎯" },
-  { type: "Key Idea", description: "What does paragraph X primarily establish?", icon: "🔑" },
-  { type: "Support/Agree", description: "Which choice provides evidence FOR the claim?", icon: "✅" },
-  { type: "Weaken/Contradict", description: "Which choice most challenges the argument?", icon: "❌" },
-  { type: "Inference", description: "What can be concluded from the passage?", icon: "💡" },
-  { type: "Analogy", description: "A is to B as C is to...?", icon: "🔗" },
-  { type: "Detail", description: "According to the passage, X is described as...?", icon: "📋" },
-  { type: "Purpose", description: "Why does the author mention X?", icon: "❓" },
+  { type: "Main Idea", description: "What is the central argument/purpose?", icon: Target },
+  { type: "Key Idea", description: "What does paragraph X primarily establish?", icon: Key },
+  { type: "Support/Agree", description: "Which choice provides evidence FOR the claim?", icon: Check },
+  { type: "Weaken/Contradict", description: "Which choice most challenges the argument?", icon: X },
+  { type: "Inference", description: "What can be concluded from the passage?", icon: Lightbulb },
+  { type: "Analogy", description: "A is to B as C is to...?", icon: Link2 },
+  { type: "Detail", description: "According to the passage, X is described as...?", icon: List },
+  { type: "Purpose", description: "Why does the author mention X?", icon: HelpCircle },
 ];
 
 export function CARSHome() {
@@ -120,7 +134,7 @@ export function CARSHome() {
               key={qt.type}
               className="flex items-start gap-3 p-3 bg-muted/30 rounded-xl"
             >
-              <span className="text-lg shrink-0">{qt.icon}</span>
+              <qt.icon className="w-4 h-4 shrink-0 mt-0.5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">{qt.type}</p>
                 <p className="text-xs text-muted-foreground">{qt.description}</p>

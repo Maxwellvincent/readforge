@@ -510,7 +510,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
                       : "border-border text-muted-foreground hover:border-primary/30"
                   }`}
                 >
-                  {src === "sample" ? "📝 Curated" : src === "library" ? "📰 Live Articles" : "✏️ Custom"}
+                  {src === "sample" ? "Curated" : src === "library" ? "Live Articles" : "Custom"}
                 </button>
               ))}
             </div>
