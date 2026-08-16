@@ -77,7 +77,7 @@ export function Sidebar() {
           className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
             pathname === "/profile"
-              ? "bg-primary/15 text-primary"
+              ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary"
               : "text-sidebar-foreground hover:bg-sidebar-accent"
           )}
         >

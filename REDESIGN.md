@@ -76,19 +76,24 @@ inversion of this palette, icon-heavy or badge-heavy chrome.
 | T1 tokens | done — palette, accents (+ readable `-ink` variants), 10px radius, type utilities |
 | T2 kill dark mode | done — `.dark` block gone, `dark:` variant bound to a never-matching selector, `next-themes` removed |
 | T3 semantic colour maps | done — `rhetorical-cues.ts` and `utils.ts` re-mapped; reading level now ramps sage->sand->rose instead of six unrelated hues |
-| T4 shared chrome | partial — sidebar active state (sage fill + chevron) done; top bar with kanji pill and search NOT built |
+| T4 shared chrome | partial — sidebar active state (sage fill + chevron) done; top bar with kanji pill and ⌘K search NOT built |
 | T5 dashboard | done — charts restyled, chips fixed, action cards converted to list rows |
-| T6 library | not visually reviewed |
-| T7 reader | partial — measure capped at 68ch, prose darkened, cue highlights rewritten; NOT visually verified against a real article |
-| T8 other screens | inherited the token + colour remap; speed/profile/grammar spot-checked, CARS/onboarding/landing not reviewed |
-| T9 sumi-e assets | not started |
+| T6 library | done — verified in the browser; fixed a dead gap in every card (title carried `flex-1`) and broken feed thumbnails leaving empty slabs |
+| T7 reader | done — verified against a real article: serif prose on paper, ~57ch measure, 11.2:1. Cambridge overlay colours verified numerically, not yet toggled on in the browser |
+| T8 other screens | speed / profile / grammar / CARS / onboarding all verified in the browser; emoji chrome replaced with line icons; landing page still unreviewed |
+| T9 sumi-e assets | not started — the one thing that would make this read as deliberate rather than a default warm-neutral |
 | T10 sweep | hardcoded palette utilities: **0 remaining** (was 256). Build + typecheck clean. Contrast verified numerically |
 
-Two bugs were found by running it in a browser rather than reading the code, and
-both are fixed: `adminDb()` called Firestore `settings()` twice across module
+Deployed to production 2026-08-16 and verified live: paper palette serving, the
+stale-cookie chain terminates in one hop, all gated routes still 401.
+
+Three bugs were found by running it in a browser rather than reading the code,
+and all are fixed: `adminDb()` called Firestore `settings()` twice across module
 instances, and the presence-only proxy caused an **infinite redirect loop** on any
-stale cookie (`/dashboard` -> `/login` -> `/dashboard`). The proxy now verifies
-the cookie signature with `jose` and clears bad cookies.
+stale cookie (`/dashboard` -> `/login` -> `/dashboard`) — which was live in
+production. The proxy now verifies the cookie signature with `jose` and clears
+bad cookies. Library cards also reserved a dead gap and left empty slabs where
+feed thumbnails failed to load.
 
 ## Tickets
 

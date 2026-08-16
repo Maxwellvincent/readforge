@@ -90,7 +90,7 @@ export default function SignupPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] rounded-full flex items-center justify-center mx-auto mb-4">
             <BookOpen className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-xl font-bold mb-2">Account Created!</h2>

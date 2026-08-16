@@ -88,7 +88,7 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-medium px-3 py-1.5 rounded-full mb-6 border border-primary/20">
+        <div className="inline-flex items-center gap-2 bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary text-xs font-medium px-3 py-1.5 rounded-full mb-6 border border-primary/20">
           <Zap className="w-3 h-3" />
           Cambridge Learning Center Methodology
         </div>

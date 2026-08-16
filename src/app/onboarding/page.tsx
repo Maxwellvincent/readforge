@@ -170,7 +170,7 @@ export default function OnboardingPage() {
         {/* INTRO */}
         {phase === "intro" && (
           <div className="text-center space-y-6">
-            <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-20 h-20 bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] rounded-full flex items-center justify-center mx-auto">
               <Brain className="w-10 h-10 text-primary" />
             </div>
             <div>
@@ -239,7 +239,7 @@ export default function OnboardingPage() {
                     let cls = "w-full text-left px-4 py-3 rounded-lg border text-sm transition-colors ";
                     if (!submitted) {
                       cls += selected
-                        ? "border-primary bg-primary/10 text-foreground"
+                        ? "border-primary bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-foreground"
                         : "border-border bg-card hover:border-primary/50";
                     } else {
                       if (isCorrect) cls += "border-border bg-card text-[var(--sage-ink)]";

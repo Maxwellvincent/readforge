@@ -212,7 +212,7 @@ export function ArticleReader({ article }: Props) {
             onClick={() => setCambridgeMode(!cambridgeMode)}
             className={`flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
               cambridgeMode
-                ? "bg-primary/15 border-primary/40 text-primary"
+                ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                 : "border-border text-muted-foreground hover:border-primary/30"
             }`}
           >
@@ -234,7 +234,7 @@ export function ArticleReader({ article }: Props) {
           <button
             onClick={generateQuiz}
             disabled={loadingQuiz}
-            className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/30 text-primary hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] transition-colors disabled:opacity-50"
           >
             <Brain className="w-3.5 h-3.5" />
             {loadingQuiz ? "Generating..." : "Quiz Me"}
@@ -519,7 +519,7 @@ function QuizQuestion({
   return (
     <div className="bg-card border border-border rounded-[10px] p-5">
       <div className="flex items-start gap-3 mb-4">
-        <span className="bg-primary/15 text-primary text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+        <span className="bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5">
           {index}
         </span>
         <div>
@@ -536,7 +536,7 @@ function QuizQuestion({
           let style = "border-border text-foreground bg-background hover:border-primary/40";
           if (showResult && isAnswer) style = "border-border bg-card text-[var(--sage-ink)]";
           else if (showResult && isSelected && !isAnswer) style = "border-border bg-card text-[var(--rose-ink)]";
-          else if (isSelected) style = "border-primary bg-primary/10 text-primary";
+          else if (isSelected) style = "border-primary bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary";
 
           return (
             <button

@@ -123,7 +123,7 @@ export function RSVPModal({ text, title, defaultWpm = 250, onClose }: Props) {
                 key={v}
                 onClick={() => { setWpm(v); reset(); }}
                 className={`text-xs px-2 py-1 rounded border transition-colors ${
-                  wpm === v ? "bg-primary/15 border-primary/40 text-primary" : "border-border text-muted-foreground hover:border-primary/30"
+                  wpm === v ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary" : "border-border text-muted-foreground hover:border-primary/30"
                 }`}
               >
                 {v}

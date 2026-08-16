@@ -506,7 +506,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
                   onClick={() => { setTextSource(src); reset(); }}
                   className={`px-3 py-1.5 rounded-lg border transition-colors capitalize ${
                     textSource === src
-                      ? "bg-primary/15 border-primary/40 text-primary"
+                      ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                       : "border-border text-muted-foreground hover:border-primary/30"
                   }`}
                 >
@@ -526,7 +526,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
                     onClick={() => { setSelectedText(i); reset(); }}
                     className={`text-xs px-3 py-2 rounded-lg border transition-colors ${
                       selectedText === i
-                        ? "bg-primary/15 border-primary/40 text-primary"
+                        ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                         : "border-border text-muted-foreground hover:border-primary/30"
                     }`}
                   >
@@ -560,7 +560,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
                         onClick={() => { setSelectedLibraryIdx(i); reset(); }}
                         className={`text-left text-xs px-3 py-2.5 rounded-lg border transition-colors ${
                           selectedLibraryIdx === i
-                            ? "bg-primary/15 border-primary/40"
+                            ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40"
                             : "border-border hover:border-primary/30"
                         }`}
                       >
@@ -652,7 +652,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
                 onClick={() => { setWpm(preset.value); reset(); }}
                 className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
                   wpm === preset.value
-                    ? "bg-primary/15 border-primary/40 text-primary"
+                    ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                     : "border-border text-muted-foreground hover:border-primary/30"
                 }`}
               >
@@ -742,7 +742,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
               {!showQuiz && activeQuiz && (
                 <button
                   onClick={() => setShowQuiz(true)}
-                  className="flex items-center gap-2 bg-primary/15 border border-primary/30 text-primary px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/25 transition-colors"
+                  className="flex items-center gap-2 bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/30 text-primary px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] transition-colors"
                 >
                   <BookOpen className="w-4 h-4" /> Test Comprehension
                 </button>
@@ -783,7 +783,7 @@ export function RSVPTrainer({ userId, currentWpm, baselineWpm }: Props) {
                         }}
                         className={`w-full text-left text-sm px-4 py-2.5 rounded-lg border transition-colors ${
                           quizAnswers[qi] === oi
-                            ? "bg-primary/15 border-primary/40 text-primary"
+                            ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                             : "border-border text-muted-foreground hover:border-primary/30 hover:text-foreground"
                         }`}
                       >

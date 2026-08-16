@@ -460,7 +460,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
         <div className="flex gap-2">
           <button
             onClick={() => setShowUpload(true)}
-            className="flex items-center gap-2 text-sm bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition-colors rounded-lg px-3 py-2"
+            className="flex items-center gap-2 text-sm bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/30 text-primary hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] transition-colors rounded-lg px-3 py-2"
           >
             <Upload className="w-4 h-4" /> Upload
           </button>
@@ -482,7 +482,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
             <button
               key={interest}
               onClick={() => saveInterests(interests.filter((i) => i !== interest))}
-              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition-colors"
+              className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/30 text-primary hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] transition-colors"
             >
               {interest} <X className="w-3 h-3" />
             </button>
@@ -503,7 +503,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                   saveInterests([...interests, interest]);
                   if (tab === "all" && interests.length === 0) setTab("foryou");
                 }}
-                className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
+                className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] hover:border-primary/30 hover:text-primary transition-colors"
               >
                 {interest}
               </button>
@@ -530,7 +530,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
             <t.icon className="w-3.5 h-3.5" />
             {t.label}
             {t.count > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.id ? "bg-primary/20" : "bg-muted"}`}>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.id ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)]" : "bg-muted"}`}>
                 {t.count}
               </span>
             )}
@@ -660,7 +660,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
             <p className="text-sm text-muted-foreground">{userDocs.length} uploaded document{userDocs.length !== 1 ? "s" : ""}</p>
             <button
               onClick={() => setShowUpload(true)}
-              className="flex items-center gap-2 text-sm bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25 transition-colors rounded-lg px-3 py-1.5"
+              className="flex items-center gap-2 text-sm bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/30 text-primary hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] transition-colors rounded-lg px-3 py-1.5"
             >
               <Plus className="w-4 h-4" /> Upload New
             </button>
@@ -707,7 +707,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${levelBadgeColor(article.reading_level)}`}>
                         {levelLabel(article.reading_level)}
                       </span>
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                      <span className="text-xs bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary px-2 py-0.5 rounded-full">
                         {String(d.file_type ?? "FILE").toUpperCase()}
                       </span>
                     </div>
@@ -889,7 +889,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                   <button
                     onClick={() => openGutenbergBook(book)}
                     disabled={loadingBookId === book.id}
-                    className="w-full flex items-center justify-center gap-2 bg-primary/15 border border-primary/30 text-primary text-sm font-medium py-2 rounded-lg hover:bg-primary/25 transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/30 text-primary text-sm font-medium py-2 rounded-lg hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] transition-colors disabled:opacity-50"
                   >
                     {loadingBookId === book.id ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Loading...</>
@@ -988,7 +988,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                     disabled={olLoadingId === book.key}
                     className={`w-full flex items-center justify-center gap-2 text-sm font-medium py-2 rounded-lg transition-colors disabled:opacity-50 mt-auto ${
                       book.hasFullText
-                        ? "bg-primary/15 border border-primary/30 text-primary hover:bg-primary/25"
+                        ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/30 text-primary hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)]"
                         : "bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-border"
                     }`}
                   >
@@ -1150,7 +1150,7 @@ export function LibraryClient({ userId, initialInterests, savedBookmarks, readwi
                       {doc.url && (
                         <button
                           onClick={() => openReadwiseDoc(doc)}
-                          className="flex-1 flex items-center justify-center gap-1.5 bg-primary/15 border border-primary/30 text-primary text-xs font-medium py-2 rounded-lg hover:bg-primary/25 transition-colors"
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/30 text-primary text-xs font-medium py-2 rounded-lg hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] transition-colors"
                         >
                           <BookOpen className="w-3.5 h-3.5" /> Read in ReadForge
                         </button>
@@ -1346,7 +1346,7 @@ function ArticleCard({
       {/* Bookmark button */}
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onBookmark(article); }}
-        className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors z-10"
+        className="absolute top-3 right-3 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] transition-colors z-10"
       >
         {isBookmarked
           ? <BookmarkCheck className="w-4 h-4 text-primary" />

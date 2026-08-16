@@ -79,7 +79,7 @@ function GrammarContent() {
               }}
               className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${
                 activeModule === i
-                  ? "bg-primary/15 text-primary border-l-2 border-primary"
+                  ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary border-l-2 border-primary"
                   : "text-muted-foreground hover:bg-muted/50 border-l-2 border-transparent"
               }`}
             >
@@ -89,7 +89,7 @@ function GrammarContent() {
                     done
                       ? "bg-card text-[var(--sage-ink)]"
                       : activeModule === i
-                      ? "bg-primary/20 text-primary"
+                      ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -134,7 +134,7 @@ function GrammarContent() {
                   }}
                   className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
                     activeLesson === i
-                      ? "bg-primary/15 border-primary/40 text-primary"
+                      ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                       : "border-border text-muted-foreground hover:border-primary/30"
                   }`}
                 >
@@ -150,7 +150,7 @@ function GrammarContent() {
               onClick={() => setMode("learn")}
               className={`text-sm px-4 py-2 rounded-lg border font-medium transition-colors ${
                 mode === "learn"
-                  ? "bg-primary/15 border-primary/40 text-primary"
+                  ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                   : "border-border text-muted-foreground"
               }`}
             >
@@ -165,7 +165,7 @@ function GrammarContent() {
               }}
               className={`text-sm px-4 py-2 rounded-lg border font-medium transition-colors ${
                 mode === "drill"
-                  ? "bg-primary/15 border-primary/40 text-primary"
+                  ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                   : "border-border text-muted-foreground"
               }`}
             >
@@ -317,7 +317,7 @@ function DrillView({
               style = "border-border bg-card text-[var(--sage-ink)]";
             else if (showAnswer && isSelected && !isAnswer)
               style = "border-border bg-card text-[var(--rose-ink)]";
-            else if (isSelected) style = "border-primary bg-primary/10 text-primary";
+            else if (isSelected) style = "border-primary bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary";
 
             return (
               <button

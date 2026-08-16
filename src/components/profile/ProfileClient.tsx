@@ -124,7 +124,7 @@ export function ProfileClient({ profile, user, readwiseConnected }: Props) {
       {/* Edit profile */}
       <div className="bg-card border border-border rounded-[10px] p-6 mb-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-14 h-14 bg-primary/20 rounded-full flex items-center justify-center">
+          <div className="w-14 h-14 bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] rounded-full flex items-center justify-center">
             <User className="w-7 h-7 text-primary" />
           </div>
           <div>

@@ -127,7 +127,7 @@ export default function LoginPage() {
           )}
 
           {notice && (
-            <div className="bg-primary/10 border border-primary/20 text-primary text-sm rounded-lg px-4 py-3 mb-4">
+            <div className="bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border border-primary/20 text-primary text-sm rounded-lg px-4 py-3 mb-4">
               {notice}
             </div>
           )}

@@ -219,7 +219,7 @@ function SessionContent() {
             "Enable Cambridge Mode for visual guidance.",
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
-              <div className="w-6 h-6 rounded-full bg-primary/20 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+              <div className="w-6 h-6 rounded-full bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary text-xs font-bold flex items-center justify-center shrink-0">
                 {i + 1}
               </div>
               <p className="text-sm">{item}</p>
@@ -266,7 +266,7 @@ function SessionContent() {
               onClick={() => setCambridgeMode(!cambridgeMode)}
               className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
                 cambridgeMode
-                  ? "bg-primary/15 border-primary/40 text-primary"
+                  ? "bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] border-primary/40 text-primary"
                   : "border-border text-muted-foreground"
               }`}
             >
@@ -344,7 +344,7 @@ function SessionContent() {
         {/* Question */}
         <div className="bg-card border border-border rounded-[10px] p-6 mb-4">
           <div className="flex items-start gap-3 mb-5">
-            <span className="bg-primary/15 text-primary text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">
+            <span className="bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary text-xs font-bold w-7 h-7 rounded-full flex items-center justify-center shrink-0">
               {currentQ + 1}
             </span>
             <div>
@@ -362,7 +362,7 @@ function SessionContent() {
               let style = "border-border text-foreground bg-background hover:border-primary/40 cursor-pointer";
               if (showResult && isAnswer) style = "border-border bg-card text-[var(--sage-ink)] cursor-default";
               else if (showResult && isSelectedThis && !isAnswer) style = "border-border bg-card text-[var(--rose-ink)] cursor-default";
-              else if (isSelectedThis) style = "border-primary bg-primary/10 text-primary";
+              else if (isSelectedThis) style = "border-primary bg-[color-mix(in_oklab,var(--sage)_28%,transparent)] text-primary";
 
               return (
                 <button
